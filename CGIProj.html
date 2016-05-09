@@ -25,12 +25,20 @@
         var WALLD = 26;
         var X = -COLS/2 * STEP;
         var Z = -ROWS/2 * STEP;
+        var path = "textures/"
 
         /*Basic Initialization*/
         var renderer = new THREE.WebGLRenderer();
         renderer.setSize(WIDTH, HEIGHT);
         renderer.setClearColor(0xdddddd);
         document.body.appendChild(renderer.domElement);
+
+        /*Texture import*/
+        var loader = new THREE.TextureLoader();
+        var url1 = path + "wall.jpg";
+        var url2 = path + "floor.jpg";
+        var wallText = loader.load(url1);
+        var floorText = loader.load(url2);
 
         /*Scene and Camera init*/
         var scene = new THREE.Scene();
