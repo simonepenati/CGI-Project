@@ -18,12 +18,16 @@
         var COLS = 10;
         var ROWS = 10;
         var STEP = 100;
-        var WALLW = 100;
+        var WALLW = 120;
         var WALLH = 100;
-        var WALLD = 26;
+        var WALLD = 20;
         var X = -COLS/2 * STEP;
         var Z = -ROWS/2 * STEP;
         var path = "textures/"
+
+        /*Texture urls*/
+        var URL1 = path + "wall2.jpg";
+        var URL2 = path + "floor2.jpg";
 
         /*Basic Initialization*/
         var renderer = new THREE.WebGLRenderer();
@@ -31,24 +35,17 @@
         renderer.setClearColor(0xdddddd);
         document.body.appendChild(renderer.domElement);
 
-        /*Texture import*/
-        var loader = new THREE.TextureLoader();
-        var url1 = path + "wall.jpg";
-        var url2 = path + "floor.jpg";
-        var wallText = loader.load(url1);
-        var floorText = loader.load(url2);
-
         /*Scene and Camera init*/
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
-        camera.position.set(0, 1500, 300);
+        camera.position.set(0, 1500, 400);
         camera.lookAt(new THREE.Vector3(0,0,0));
 
 		/*Function generating random numbers
 		to adjust proportion of walls created*/
 		generateRandom = function(){
             var rndSeed = THREE.Math.randInt(1,100);
-            if(rndSeed>70){
+            if(rndSeed>75){
                 return 1;
             }else {
                 return 0;
@@ -85,6 +82,7 @@
 		underlying the labyrinth.*/
         generatePlane = function(i, j){
             var planeGeom = new THREE.PlaneGeometry(STEP, STEP);
+	        var floorText = new THREE.TextureLoader().load(URL2);
             var planeMat = new THREE.MeshBasicMaterial({map: floorText});
             var plane = new THREE.Mesh(planeGeom, planeMat);
 			plane.position.set( X + j * STEP,
@@ -97,11 +95,11 @@
 		/*Function generating the walls, depending on
 		the four random numbers contained in each matrix's cell*/
         generateWalls = function(vector, i, j){
-            var len = vector.length();
-            for(w=0; w<len; w++){
-                if(vector[w] = 1){
+            for(w=0; w<4; w++){
+                if(vector.getComponent(w) == 1){
                     var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD);
-                    var wallMat = new THREE.MeshBasicMaterial({color: 0x333333});
+			        var wallText = new THREE.TextureLoader().load(URL1);
+                    var wallMat = new THREE.MeshBasicMaterial({map: wallText});
                     var wall = new THREE.Mesh(wallGeom, wallMat);
                     wall.position.set(  X + (j - Math.sin(w * Math.PI/2)/2) * STEP,
                                         STEP/2,
@@ -117,14 +115,14 @@
 		/*Function editing the vector of each matrix cell
 		to build the labyrinth borders*/
 		generateBorders = function(vector, i, j){
-			if(i === 0){
+			if(i == 0){
 				vector.setX(1);
-			}else if (i === ROWS-1) {
+			}else if (i == ROWS-1) {
 					vector.setZ(1);
 			}
-			if(j === 0){
+			if(j == 0){
 				vector.setY(1);
-			}else if (j === COLS-1) {
+			}else if (j == COLS-1) {
 				vector.setW(1);
 			}
 			return vector;
@@ -149,7 +147,7 @@
             var matrix = adjustMatrix(generateMatrix());
             for(i=0; i<ROWS; i++){
                 for(j=0; j<COLS; j++){
-                    var plane = generatePlane(i, j);
+                    generatePlane(i, j);
                     generateWalls(matrix[i][j], i, j);
                 }
             }
@@ -158,7 +156,11 @@
         generateLabyrinth();
 
         scene.add(new THREE.AmbientLight(0xffffff));
-        renderer.render(scene, camera);
+		render = function(){
+			requestAnimationFrame(render);
+			renderer.render(scene, camera);
+		}
+		render();
 
 	</script>
 	</body>
