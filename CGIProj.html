@@ -9,10 +9,8 @@
 		</style>
 	</head>
 	<body>
-<!--<script src="C:\\Users\Simone\Documents\GitHub\three.js\build\three.js">-->
-	<script src="C:\\Users\Marina\Documents\[SIMONE]\GitHubRepo\three.js\build\three.js">
-		</script>
-		<script>
+	<script src="three.js"></script>
+	<script>
 
         /*GLOBAL CONSTANTS*/
         var WIDTH = window.innerWidth-3;
@@ -46,7 +44,9 @@
         camera.position.set(0, 1500, 300);
         camera.lookAt(new THREE.Vector3(0,0,0));
 
-        generateRandom = function(){
+		/*Function generating random numbers
+		to adjust proportion of walls created*/
+		generateRandom = function(){
             var rndSeed = THREE.Math.randInt(1,100);
             if(rndSeed>70){
                 return 1;
@@ -55,6 +55,10 @@
             }
         }
 
+		/*Function generating vectors of random
+		numbers, to build the walls in the
+		matrix's cells.
+		Calls generateRandom()*/
         generateVector4 = function(){
             return new THREE.Vector4(
                 generateRandom(),
@@ -64,6 +68,8 @@
             );
         }
 
+		/*Function generating the matrix.
+		Calls generateVector4()*/
         generateMatrix = function(){
             var matrix = new Array();
             for(i=0; i<ROWS; i++){
@@ -75,19 +81,27 @@
             return matrix;
         }
 
-        generatePlane = function(){
+		/*Function generating the plane, the floor
+		underlying the labyrinth.*/
+        generatePlane = function(i, j){
             var planeGeom = new THREE.PlaneGeometry(STEP, STEP);
-            var planeMat = new THREE.MeshBasicMaterial({color: 0xb60000});
+            var planeMat = new THREE.MeshBasicMaterial({map: floorText});
             var plane = new THREE.Mesh(planeGeom, planeMat);
-            return plane;
+			plane.position.set( X + j * STEP,
+								0,
+								Z + i * STEP);
+			plane.rotation.x = -Math.PI/2;
+			scene.add(plane);
         }
 
+		/*Function generating the walls, depending on
+		the four random numbers contained in each matrix's cell*/
         generateWalls = function(vector, i, j){
             var len = vector.length();
             for(w=0; w<len; w++){
                 if(vector[w] = 1){
                     var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD);
-                    var wallMat = new THREE.MeshBasicMaterial({color: 0x00b600});
+                    var wallMat = new THREE.MeshBasicMaterial({color: 0x333333});
                     var wall = new THREE.Mesh(wallGeom, wallMat);
                     wall.position.set(  X + (j - Math.sin(w * Math.PI/2)/2) * STEP,
                                         STEP/2,
@@ -100,21 +114,42 @@
             }
         }
 
-        // adjustMatrix(matrix){
-        //     //TODO
-        // }
+		/*Function editing the vector of each matrix cell
+		to build the labyrinth borders*/
+		generateBorders = function(vector, i, j){
+			if(i === 0){
+				vector.setX(1);
+			}else if (i === ROWS-1) {
+					vector.setZ(1);
+			}
+			if(j === 0){
+				vector.setY(1);
+			}else if (j === COLS-1) {
+				vector.setW(1);
+			}
+			return vector;
+		}
 
+		/*Function tweaking the wall generation to
+		generate a better labyrinth structure.
+		Calls generateBorders()*/
+		adjustMatrix = function(matrix){
+			for(i=0; i<ROWS; i++){
+                for(j=0; j<COLS; j++){
+                    matrix[i][j] = generateBorders(matrix[i][j], i, j);
+                }
+            }
+			return matrix;
+        }
+
+		/*Main function, generating the labyrinth and
+		causing direct or indirect invocation of all other
+		generating functions*/
         generateLabyrinth = function(){
-            var matrix = generateMatrix();
-            // adjustMatrix(matrix);
+            var matrix = adjustMatrix(generateMatrix());
             for(i=0; i<ROWS; i++){
                 for(j=0; j<COLS; j++){
-                    var plane = generatePlane();
-                    plane.position.set( X + j * STEP,
-                                        0,
-                                        Z + i * STEP);
-                    plane.rotation.x = -Math.PI/2;
-                    scene.add(plane);
+                    var plane = generatePlane(i, j);
                     generateWalls(matrix[i][j], i, j);
                 }
             }
@@ -125,6 +160,6 @@
         scene.add(new THREE.AmbientLight(0xffffff));
         renderer.render(scene, camera);
 
-		</script>
+	</script>
 	</body>
 </html>
