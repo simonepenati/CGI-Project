@@ -15,25 +15,33 @@
         /*GLOBAL CONSTANTS*/
         var WIDTH = window.innerWidth-3;
         var HEIGHT = window.innerHeight-3;
-        var COLS = 10;
+        var COLS = 15;
         var ROWS = 10;
         var STEP = 100;
         var WALLW = 120;
-        var WALLH = 100;
+        var WALLH = 200;
         var WALLD = 20;
+		var SEED = 80;
+		var NULLVALUE = -1;
+		var NULLCELL = new THREE.Vector4(NULLVALUE, NULLVALUE, NULLVALUE, NULLVALUE);
         var X = -COLS/2 * STEP;
         var Z = -ROWS/2 * STEP;
-        var path = "textures/"
+        var path = "textures/";
+		var start = new Array(0, 0);
+		var end;
+
 
         /*Texture urls*/
         var URL1 = path + "wall2.jpg";
-        var URL2 = path + "floor2.jpg";
+        var URL2 = path + "floor4.jpg";
 
         /*Basic Initialization*/
-        var renderer = new THREE.WebGLRenderer();
+        var renderer = new THREE.WebGLRenderer({antialias: true});
         renderer.setSize(WIDTH, HEIGHT);
         renderer.setClearColor(0xdddddd);
-        document.body.appendChild(renderer.domElement);
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMap.type = THREE.BasicShadowMap;
+		document.body.appendChild(renderer.domElement);
 
         /*Scene and Camera init*/
         var scene = new THREE.Scene();
@@ -41,11 +49,26 @@
         camera.position.set(0, 1500, 400);
         camera.lookAt(new THREE.Vector3(0,0,0));
 
+		/*Lights*/
+		lights = function(){
+			scene.add(new THREE.AmbientLight(0xffffff));
+			var pointLight = new THREE.PointLight(0xdd8800, 8, 200, 2);
+			pointLight.position.set(0, 130, 0);
+
+			pointLight.castShadow = true;
+			pointLight.shadow.camera.near = 1;
+			pointLight.shadow.camera.far = 1000;
+			pointLight.shadow.bias = 0.01;
+
+			// scene.add(pointLight);
+		}
+
 		/*Function generating random numbers
-		to adjust proportion of walls created*/
+		to adjust proportion of walls created
+		@return 0,1*/
 		generateRandom = function(){
             var rndSeed = THREE.Math.randInt(1,100);
-            if(rndSeed>75){
+            if(rndSeed > SEED){
                 return 1;
             }else {
                 return 0;
@@ -66,7 +89,8 @@
         }
 
 		/*Function generating the matrix.
-		Calls generateVector4()*/
+		Calls generateVector4()
+		@return matrix*/
         generateMatrix = function(){
             var matrix = new Array();
             for(i=0; i<ROWS; i++){
@@ -83,12 +107,14 @@
         generatePlane = function(i, j){
             var planeGeom = new THREE.PlaneGeometry(STEP, STEP);
 	        var floorText = new THREE.TextureLoader().load(URL2);
-            var planeMat = new THREE.MeshBasicMaterial({map: floorText});
+            var planeMat = new THREE.MeshLambertMaterial({color: 0x444455,
+								map: floorText});
             var plane = new THREE.Mesh(planeGeom, planeMat);
 			plane.position.set( X + j * STEP,
 								0,
 								Z + i * STEP);
 			plane.rotation.x = -Math.PI/2;
+			plane.receiveShadow = true;
 			scene.add(plane);
         }
 
@@ -99,7 +125,8 @@
                 if(vector.getComponent(w) == 1){
                     var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD);
 			        var wallText = new THREE.TextureLoader().load(URL1);
-                    var wallMat = new THREE.MeshBasicMaterial({map: wallText});
+                    var wallMat = new THREE.MeshLambertMaterial({color: 0x666666,
+									map: wallText});
                     var wall = new THREE.Mesh(wallGeom, wallMat);
                     wall.position.set(  X + (j - Math.sin(w * Math.PI/2)/2) * STEP,
                                         STEP/2,
@@ -107,13 +134,16 @@
                     wall.rotation.set(  0,
                                         w * Math.PI/2,
                                         0);
+					wall.receiveShadow = true;
+					wall.castShadow = true;
                     scene.add(wall);
                 }
             }
         }
 
 		/*Function editing the vector of each matrix cell
-		to build the labyrinth borders*/
+		to build the labyrinth borders
+		@return Vector4*/
 		generateBorders = function(vector, i, j){
 			if(i == 0){
 				vector.setX(1);
@@ -128,38 +158,164 @@
 			return vector;
 		}
 
+		/*Generates the array of adjacent cells
+		@return Vector4*/
+		adjArray = function(matrix, i, j){
+			var north, west, south, east;
+			if(i == 0){
+				north = NULLCELL;
+				south = matrix[i+1][j];
+			}else if (i == ROWS-1) {
+					north = matrix[i-1][j];
+					south = NULLCELL;
+			}else {
+				north = matrix[i-1][j];
+				south = matrix[i+1][j];
+			}
+			if(j == 0){
+				west = NULLCELL;
+				east = matrix[i][j+1];
+			}else if (j == COLS-1) {
+				west = matrix[i][j-1];
+				east = NULLCELL;
+			}else {
+				west = matrix[i][j-1];
+				east = matrix[i][j+1];
+			}
+			return new THREE.Vector4(north, west, south, east);
+		}
+
+		/*Checks if current cell is completely enclosed by walls
+		@return boolean*/
+		checkClosed = function(vectorCurrentCell, vectorAdjCells){
+			var northCell = vectorAdjCells.getComponent(0);
+			var westCell = vectorAdjCells.getComponent(1);
+			var southCell = vectorAdjCells.getComponent(2);
+			var eastCell = vectorAdjCells.getComponent(3);
+			if(
+				(
+					vectorCurrentCell.getComponent(0) === 1 ||
+					northCell.getComponent(2) === 1
+				) &&
+
+				(
+					vectorCurrentCell.getComponent(1) === 1 ||
+					westCell.getComponent(3) === 1
+				) &&
+
+				(
+					vectorCurrentCell.getComponent(2) === 1 ||
+					southCell.getComponent(0) === 1
+				) &&
+
+				(
+					vectorCurrentCell.getComponent(0) === 1 ||
+					eastCell.getComponent(3) === 1
+				)
+			) {
+					return true;
+				}else {
+					return false;
+				}
+		}
+
+		/*Eventually deletes walls closing off a 1x1 tile
+		@return Array()*/
+		thouShaltPass = function(vectorCurrentCell, vectorCheckingCell, k){
+			if(k == 0){
+				vectorCurrentCell.setComponent(0, 0);
+				vectorCheckingCell.setComponent(2, 0);
+			}else if (k == 1) {
+				vectorCurrentCell.setComponent(1, 0);
+				vectorCheckingCell.setComponent(3, 0);
+			}else if (k == 2) {
+				vectorCurrentCell.setComponent(2, 0);
+				vectorCheckingCell.setComponent(0, 0);
+			}else {
+				vectorCurrentCell.setComponent(3, 0);
+				vectorCheckingCell.setComponent(1, 0);
+			}
+			return new Array(vectorCurrentCell, vectorCheckingCell);
+		}
+
+		/*Function eliminating 1x1 tiles encased by walls
+		@return matrix*/
+		noSingletons = function(matrix){
+			for(i=0; i<ROWS; i++){
+                for(j=0; j<COLS; j++){
+					var current = matrix[i][j];
+                    var adjacentCells = adjArray(matrix, i, j);
+					while(checkClosed(current, adjacentCells)){
+						for(k=0; k<4; k++){
+							var checking = adjacentCells.getComponent(k);
+							var checkValue = checking.getComponent(0);
+							if(checkValue !== NULLVALUE){
+								var returned = thouShaltPass(current, checking, k);
+								matrix[i][j] = returned[0];
+								if(k == 0){
+									matrix[i-1][j] = returned[1];
+								}else if (k == 1) {
+									matrix[i][j-1] = returned[1];
+								}else if (k == 2) {
+									matrix[i+1][j] = returned[1];
+								}else{
+									matrix[i][j+1] = returned[1];
+								}
+							}
+						}
+					}
+                }
+            }
+			return matrix;
+		}
+
 		/*Function tweaking the wall generation to
 		generate a better labyrinth structure.
-		Calls generateBorders()*/
+		Calls generateBorders()
+		@return matrix*/
 		adjustMatrix = function(matrix){
 			for(i=0; i<ROWS; i++){
                 for(j=0; j<COLS; j++){
                     matrix[i][j] = generateBorders(matrix[i][j], i, j);
                 }
             }
+			matrix = noSingletons(matrix);
 			return matrix;
         }
+
+		/**/
+		generateStartEnd = function(matrix){
+
+		}
+
+		/**/
+		initGame = function(indexVector){
+
+		}
 
 		/*Main function, generating the labyrinth and
 		causing direct or indirect invocation of all other
 		generating functions*/
         generateLabyrinth = function(){
             var matrix = adjustMatrix(generateMatrix());
+			var startEnd = generateStartEnd(matrix);
             for(i=0; i<ROWS; i++){
                 for(j=0; j<COLS; j++){
                     generatePlane(i, j);
                     generateWalls(matrix[i][j], i, j);
                 }
             }
+			initGame(startEnd);
         }
 
-        generateLabyrinth();
-
-        scene.add(new THREE.AmbientLight(0xffffff));
+		/*Rendering function*/
 		render = function(){
 			requestAnimationFrame(render);
 			renderer.render(scene, camera);
 		}
+
+		generateLabyrinth();
+		lights();
 		render();
 
 	</script>
