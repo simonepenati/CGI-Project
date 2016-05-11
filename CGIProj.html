@@ -2,9 +2,9 @@
 <html>
 	<head>
 		<meta charset=utf-8>
-		<title>CGI PROJ</title>
+		<title>Mr. LeGrasse in The Mysterious Maze</title>
 		<style>
-			body { margin: 0; }
+			body { margin: 0; cursor: none}
 			canvas { width: 100%; height: 100% }
 		</style>
 	</head>
@@ -17,18 +17,27 @@
         var HEIGHT = window.innerHeight-3;
         var COLS = 15;
         var ROWS = 10;
-        var STEP = 100;
-        var WALLW = 120;
-        var WALLH = 200;
-        var WALLD = 20;
+        var STEP = 150;
+
+        var WALLW = 190;
+        var WALLH = 300;
+        var WALLD = 40;
+
 		var SEED = 80;
+
 		var NULLVALUE = -1;
 		var NULLCELL = new THREE.Vector4(NULLVALUE, NULLVALUE, NULLVALUE, NULLVALUE);
+
         var X = -COLS/2 * STEP;
         var Z = -ROWS/2 * STEP;
+
         var path = "textures/";
+
+		var dist = 0;
+		var distMax = (COLS*ROWS)/(COLS+ROWS);
 		var start = new Array(0, 0);
-		var end;
+		var end = new Array(0, 0);
+		var s1, s2;
 
 
         /*Texture urls*/
@@ -43,24 +52,32 @@
 		renderer.shadowMap.type = THREE.BasicShadowMap;
 		document.body.appendChild(renderer.domElement);
 
+		/*Event Listeners*/
+		// document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+		// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+		// document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
         /*Scene and Camera init*/
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
-        camera.position.set(0, 1500, 400);
+        camera.position.set(0, 2000, 700);
         camera.lookAt(new THREE.Vector3(0,0,0));
+
+		/*Personal Camera Init*/
+		var personalCamera = new THREE.PerspectiveCamera(75, WIDTH/HEIGHT, 1, 10000);
 
 		/*Lights*/
 		lights = function(){
-			scene.add(new THREE.AmbientLight(0xffffff));
-			var pointLight = new THREE.PointLight(0xdd8800, 8, 200, 2);
-			pointLight.position.set(0, 130, 0);
+			// scene.add(new THREE.AmbientLight(0xffffff));
+			var pointLight = new THREE.PointLight(0xdd8800, 50, 200, 2);
+			pointLight.position.set(0, 0, 0);
 
 			pointLight.castShadow = true;
 			pointLight.shadow.camera.near = 1;
-			pointLight.shadow.camera.far = 1000;
+			pointLight.shadow.camera.far = 300;
 			pointLight.shadow.bias = 0.01;
 
-			// scene.add(pointLight);
+			s1.add(pointLight);
 		}
 
 		/*Function generating random numbers
@@ -110,12 +127,19 @@
             var planeMat = new THREE.MeshLambertMaterial({color: 0x444455,
 								map: floorText});
             var plane = new THREE.Mesh(planeGeom, planeMat);
+			var ceiling = new THREE.Mesh(planeGeom, planeMat);
 			plane.position.set( X + j * STEP,
 								0,
 								Z + i * STEP);
 			plane.rotation.x = -Math.PI/2;
 			plane.receiveShadow = true;
 			scene.add(plane);
+			ceiling.position.set( X + j * STEP,
+								WALLH,
+								Z + i * STEP);
+			ceiling.rotation.x = Math.PI/2;
+			ceiling.receiveShadow = true;
+			scene.add(ceiling);
         }
 
 		/*Function generating the walls, depending on
@@ -129,7 +153,7 @@
 									map: wallText});
                     var wall = new THREE.Mesh(wallGeom, wallMat);
                     wall.position.set(  X + (j - Math.sin(w * Math.PI/2)/2) * STEP,
-                                        STEP/2,
+                                        WALLH/2,
                                         Z + (i - Math.cos(w * Math.PI/2)/2) * STEP);
                     wall.rotation.set(  0,
                                         w * Math.PI/2,
@@ -283,15 +307,144 @@
 			return matrix;
         }
 
-		/**/
-		generateStartEnd = function(matrix){
+		/*Checks if there is free passage between two adjacent cells*/
+		canPass = function(matrix, dir){
+			var i = end[1];
+			var j = end[0];
+			switch(dir){
+				case 0:
+					if(i>0){
+						if(matrix[i][j].getComponent(0) == 1 ||
+							matrix[i-1][j].getComponent(2) == 1){
+							return false;
+						}else{
+							return true;
+						}
+					}else{
+						return false;
+					}
+					break;
+				case 1:
+					if(j>0){
+						if(matrix[i][j].getComponent(1) == 1 ||
+							matrix[i][j-1].getComponent(3) == 1){
+							return false;
+						}else{
+							return true;
+						}
+					}else{
+						return false;
+					}
+					break;
+				case 2:
+					if(i<ROWS){
+						if(matrix[i][j].getComponent(2) == 1 ||
+							matrix[i+1][j].getComponent(0) == 1){
+							return false;
+						}else{
+							return true;
+						}
+					}else{
 
+					}	return false;
+					break;
+				case 3:
+					if(j<COLS){
+						if(matrix[i][j].getComponent(3) == 1 ||
+							matrix[i][j+1].getComponent(1) == 1){
+							return false;
+						}else{
+							return true;
+						}
+					}else{
+						return false;
+					}
+					break;
+				default:
+					return false;
+			}
+		}
+
+		/*Calculates the distance between start and end*/
+		calculateDistance = function(){
+			var a = start[0];
+			var b = start[1];
+			var c = end[0];
+			var d = end[1];
+			colDist = Math.abs(a-c);
+			rowDist = Math.abs(b-d);
+			colDistSqr = Math.pow(colDist, 2);
+			rowDistSqr = Math.pow(rowDist, 2);
+			sum = colDistSqr + rowDistSqr;
+			dist = Math.sqrt(sum);
+		}
+
+		/*Recursively builds a path from start to end of distMax length*/
+		findPath = function(matrix){
+			var dir = THREE.Math.randInt(0, 3);
+			var incremented = false;
+			while(!incremented){
+				if(dir == 0 && end[1]>0){
+					if(canPass(matrix, dir)){
+						end[1] -= 1;
+						incremented = true;
+					}
+				}else if (dir == 1 && end[0]>0){
+					if(canPass(matrix, dir)){
+						end[0] -= 1;
+						incremented = true;
+					}
+				}else if (dir == 2 && end[1]<ROWS){
+					if(canPass(matrix, dir)){
+						end[1] += 1;
+						incremented = true;
+					}
+				}else if (dir == 3 && end[0]<COLS){
+					if(canPass(matrix, dir)){
+						end[0] +=1;
+						incremented = true;
+					}
+				}
+				dir = THREE.Math.randInt(0, 3);
+			}
+			calculateDistance();
+			if(dist < distMax){
+				findPath(matrix);
+			}
+		}
+
+		/*Randomly generates the starting and ending points*/
+		generateStartEnd = function(matrix){
+			while(dist < distMax){
+				var n = THREE.Math.randInt(0, COLS-1);
+				var m = THREE.Math.randInt(0, ROWS-1);
+				start[0] = n;
+				start[1] = m;
+				end[0] = start[0];
+				end[1] = start[1];
+				findPath(matrix);
+				calculateDistance();
+			}
 		}
 
 		/**/
 		initGame = function(indexVector){
-
+			var sg = new THREE.SphereGeometry(20, 70, 70);
+			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0});
+			var sm2 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0,
+			emissive: 0xb60000, emissiveIntensity: 4});
+			s1 = new THREE.Mesh(sg, sm1);
+			s2 = new THREE.Mesh(sg, sm2);
+			s1.position.set(X + start[0] * STEP,
+							100,
+							Z + start[1] * STEP);
+			s2.position.set(X + end[0] * STEP,
+							50,
+							Z + end[1] * STEP);
+			scene.add(s1);
+			scene.add(s2);
 		}
+
 
 		/*Main function, generating the labyrinth and
 		causing direct or indirect invocation of all other
@@ -308,10 +461,20 @@
 			initGame(startEnd);
         }
 
+		/*STUB*/
+		cameraUpdate = function(){
+			var spherex = s1.position.x;
+			var spherey = s1.position.y;
+			var spherez = s1.position.z;
+			personalCamera.position.set(spherex-50, spherey+60, spherez);
+		}
+
 		/*Rendering function*/
 		render = function(){
 			requestAnimationFrame(render);
+			cameraUpdate();
 			renderer.render(scene, camera);
+			// renderer.render(scene, personalCamera);
 		}
 
 		generateLabyrinth();
