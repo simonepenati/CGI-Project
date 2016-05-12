@@ -46,6 +46,8 @@
 		var start = new Array(0, 0);
 		var end = new Array(0, 0);
 		var s1, s2;
+		var vertices;
+		var rays = new Array();
 
 		var axisX = new THREE.Vector3(1, 0, 0);
 		var axisY = new THREE.Vector3(0, 1, 0);
@@ -509,9 +511,26 @@
 			}
 		}
 
-		/**/
+		/*Generates collisions between character and walls
+		http://webmaestro.fr/collisions-detection-three-js-raycasting/*/
+		collider = function(){
+			var origin = new THREE.Vector3(s1.position.x,
+										   s1.position.y,
+										   s1.position.z);
+			origin.normalize();
+			for(t=0; t<vertices.length; t++){
+				var objective = new THREE.Vector3(vertices[t].x,
+												  vertices[t].y,
+												  vertices[t].z);
+				objective.normalize();
+				rays.push(new THREE.Raycaster(origin, objective, 15, 50));
+			}
+		}
+
+		/*Starts the game*/
 		initGame = function(indexVector){
-			var sg = new THREE.SphereGeometry(20, 70, 70);
+			var sg = new THREE.SphereGeometry(20, 15, 15);
+			vertices = sg.vertices;
 			var lol = new THREE.TextureLoader().load(URL1);
 			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0,
 			emissive: 0x00b600, emissiveIntensity: 2});
@@ -531,7 +550,6 @@
 			 							s1.position.y,
 										s1.position.z);
 		}
-
 
 		/*Main function, generating the labyrinth and
 		causing direct or indirect invocation of all other
@@ -589,6 +607,7 @@
 		/*Rendering function*/
 		render = function(){
 			requestAnimationFrame(render);
+			collider();
 			cameraUpdate();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
