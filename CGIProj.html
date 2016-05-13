@@ -48,10 +48,17 @@
 		var s1, s2;
 		var vertices;
 		var rays = new Array();
+		var intersects = new Array();
+		var obstacles = new Array();
+		var matrix;
 
 		var axisX = new THREE.Vector3(1, 0, 0);
 		var axisY = new THREE.Vector3(0, 1, 0);
 		var axisZ = new THREE.Vector3(0, 0, 1);
+		var axisXNeg = new THREE.Vector3(-1, 0, 0);
+		var axisYNeg = new THREE.Vector3(0, -1, 0);
+		var axisZNeg = new THREE.Vector3(0, 0, -1);
+		var forwards;
 
         /*Texture urls*/
         var URL1 = path + "wall2.jpg";
@@ -72,8 +79,12 @@
 		document.addEventListener("mousewheel", onMouseWheel, false);
 		document.addEventListener("keydown", onKeyDownW, false);
 		document.addEventListener("keydown", onKeyDownS, false);
+		document.addEventListener("keydown", onKeyDownA, false);
+		document.addEventListener("keydown", onKeyDownD, false);
 		document.addEventListener("keypressed", onKeyPressedW, false);
 		document.addEventListener("keypressed", onKeyPressedS, false);
+		document.addEventListener("keypressed", onKeyPressedA, false);
+		document.addEventListener("keypressed", onKeyPressedD, false);
 		document.addEventListener("keyup", onKeyUp, false);
 
         /*Scene and Fog init*/
@@ -91,8 +102,7 @@
 
 		/*Lights*/
 		lights = function(){
-			// scene.add(new THREE.AmbientLight(0xffffff));
-			var pointLight = new THREE.PointLight(0xdd8800, 40, 300, 2);
+			var pointLight = new THREE.PointLight(0xdd8800, 40, 350, 2);
 			pointLight.position.set(0, 0, 0);
 
 			pointLight.castShadow = true;
@@ -148,21 +158,46 @@
 				s1.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
 			}
 		}
+		function onKeyDownA(event){
+			event.preventDefault();
+			if(event.char === "a"){
+				s1.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
+			}
+		}
+		function onKeyDownD(event){
+			event.preventDefault();
+			if(event.char === "d"){
+				s1.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
+			}
+		}
 
 		/*Handles continued movement of character and sprint*/
 		function onKeyPressedW(event){
+			event.preventDefault();
 			if(event.char === "w"){
-				s1.position.z -= STEP/10 * 0.3 * speed;
+				s1.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
 			}
 		}
 		function onKeyPressedS(event){
+			event.preventDefault();
 			if(event.char === "s"){
-				s1.position.z += STEP/10 * 0.2;
+				s1.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
+			}
+		}
+		function onKeyPressedA(event){
+			event.preventDefault();
+			if(event.char === "a"){
+				s1.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
+			}
+		}
+		function onKeyPressedD(event){
+			event.preventDefault();
+			if(event.char === "d"){
+				s1.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
 			}
 		}
 
-		function onKeyUp(event){
-		}
+		function onKeyUp(event){}
 
 		/*Function generating random numbers
 		to adjust proportion of walls created
@@ -217,18 +252,19 @@
 								Z + i * STEP);
 			plane.rotation.x = -Math.PI/2;
 			plane.receiveShadow = true;
-			scene.add(plane);
+			obstacles.push(plane);
 			ceiling.position.set( X + j * STEP,
 								WALLH,
 								Z + i * STEP);
 			ceiling.rotation.x = Math.PI/2;
 			ceiling.receiveShadow = true;
-			scene.add(ceiling);
+			obstacles.push(ceiling);
         }
 
 		/*Function generating the walls, depending on
 		the four random numbers contained in each matrix's cell*/
-        generateWalls = function(vector, i, j){
+        generateWalls = function(i, j){
+			var vector = matrix[i][j];
             for(w=0; w<4; w++){
                 if(vector.getComponent(w) == 1){
                     var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD);
@@ -244,7 +280,7 @@
                                         0);
 					wall.receiveShadow = true;
 					wall.castShadow = true;
-                    scene.add(wall);
+					obstacles.push(wall);
                 }
             }
         }
@@ -450,17 +486,13 @@
 		}
 
 		/*Calculates the distance between start and end*/
-		calculateDistance = function(){
-			var a = start[0];
-			var b = start[1];
-			var c = end[0];
-			var d = end[1];
+		calculateDistance = function(a, b, c, d){
 			colDist = Math.abs(a-c);
 			rowDist = Math.abs(b-d);
 			colDistSqr = Math.pow(colDist, 2);
 			rowDistSqr = Math.pow(rowDist, 2);
 			sum = colDistSqr + rowDistSqr;
-			dist = Math.sqrt(sum);
+			return Math.sqrt(sum);
 		}
 
 		/*Recursively builds a path from start to end of distMax length*/
@@ -491,14 +523,14 @@
 				}
 				dir = THREE.Math.randInt(0, 3);
 			}
-			calculateDistance();
+			dist = calculateDistance(start[0], start[1], end[0], end[1]);
 			if(dist < distMax){
 				findPath(matrix);
 			}
 		}
 
 		/*Randomly generates the starting and ending points*/
-		generateStartEnd = function(matrix){
+		generateStartEnd = function(){
 			while(dist < distMax){
 				var n = THREE.Math.randInt(0, COLS-1);
 				var m = THREE.Math.randInt(0, ROWS-1);
@@ -507,28 +539,50 @@
 				end[0] = start[0];
 				end[1] = start[1];
 				findPath(matrix);
-				calculateDistance();
+				dist = calculateDistance(start[0], start[1], end[0], end[1]);
 			}
 		}
 
-		/*Generates collisions between character and walls
+		/*Generates raycasters between character and walls
 		http://webmaestro.fr/collisions-detection-three-js-raycasting/*/
-		collider = function(){
+		raycast = function(){
 			var origin = new THREE.Vector3(s1.position.x,
 										   s1.position.y,
 										   s1.position.z);
 			origin.normalize();
-			for(t=0; t<vertices.length; t++){
-				var objective = new THREE.Vector3(vertices[t].x,
-												  vertices[t].y,
-												  vertices[t].z);
+			for(v in vertices){
+				var objective = new THREE.Vector3(v.x,
+												  v.y,
+												  v.z);
 				objective.normalize();
 				rays.push(new THREE.Raycaster(origin, objective, 15, 50));
 			}
 		}
 
+		/*Checks collisions*/
+		collideCheck = function(){
+			// for(i=0; i<rays.length; i++){
+			// 	intersects.push(rays[i].intersectObject(scene, true));
+			// }
+		}
+
+		/*Draws visible portions of the labyrinth each frame*/
+		draw = function(){
+			for(obs in obstacles){
+				//TODO
+				//Per ogni ostacolo, se è oltre la distanza di visione viene
+				//rimosso; se è entro la distanza di visione viene rimosso e aggiunto?
+				//Controllare se fattibile per ridurre il numero di controlli e di loop
+			}
+		}
+
+		/*Calculates the index of the matrix of a given position*/
+		calculateIndex = function(positionX, positionZ){
+
+		}
+
 		/*Starts the game*/
-		initGame = function(indexVector){
+		initGame = function(){
 			var sg = new THREE.SphereGeometry(20, 15, 15);
 			vertices = sg.vertices;
 			var lol = new THREE.TextureLoader().load(URL1);
@@ -539,7 +593,7 @@
 			s1 = new THREE.Mesh(sg, sm1);
 			s2 = new THREE.Mesh(sg, sm2);
 			s1.position.set(X + start[0] * STEP,
-							100,
+							170,
 							Z + start[1] * STEP);
 			s2.position.set(X + end[0] * STEP,
 							50,
@@ -555,15 +609,16 @@
 		causing direct or indirect invocation of all other
 		generating functions*/
         generateLabyrinth = function(){
-            var matrix = adjustMatrix(generateMatrix());
-			var startEnd = generateStartEnd(matrix);
-            for(i=0; i<ROWS; i++){
+            matrix = adjustMatrix(generateMatrix());
+			generateStartEnd();
+			for(i=0; i<ROWS; i++){
                 for(j=0; j<COLS; j++){
                     generatePlane(i, j);
-                    generateWalls(matrix[i][j], i, j);
+                    generateWalls(i, j);
                 }
             }
-			initGame(startEnd);
+            draw();
+			initGame();
         }
 
 		/*Updates the camera position relatively to the character
@@ -600,14 +655,17 @@
 			var carrot = new THREE.Vector3(spherex + x1,
 											spherey,
 											spherez + z1);
+			forwards = new THREE.Vector3(x1, 0 , z1);
 			personalCamera.lookAt(target);
 			s1.lookAt(carrot);
+			draw();
 		}
 
 		/*Rendering function*/
-		render = function(){
-			requestAnimationFrame(render);
-			collider();
+		animate = function(){
+			requestAnimationFrame(animate);
+			raycast();
+			collideCheck();
 			cameraUpdate();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
@@ -615,7 +673,7 @@
 
 		generateLabyrinth();
 		lights();
-		render();
+		animate();
 
 	</script>
 	</body>
