@@ -24,6 +24,7 @@
         var WALLD = 30;
 
 		var SEED = 80;
+		var VIEWDIST = 600;
 
 		var NULLVALUE = -1;
 		var NULLCELL = new THREE.Vector4(NULLVALUE, NULLVALUE, NULLVALUE, NULLVALUE);
@@ -45,7 +46,7 @@
 		var distMax = (COLS*ROWS)/(COLS+ROWS);
 		var start = new Array(0, 0);
 		var end = new Array(0, 0);
-		var s1, s2;
+		var character, s2;
 		var vertices;
 		var rays = new Array();
 		var intersects = new Array();
@@ -110,7 +111,7 @@
 			pointLight.shadow.camera.far = 400;
 			pointLight.shadow.bias = 0.01;
 
-			s1.add(pointLight);
+			character.add(pointLight);
 		}
 
 		/*Gets Mouse position at click*/
@@ -149,25 +150,25 @@
 		function onKeyDownW(event){
 			event.preventDefault();
 			if(event.char === "w"){
-				s1.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+				character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
 			}
 		}
 		function onKeyDownS(event){
 			event.preventDefault();
 			if(event.char === "s"){
-				s1.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
+				character.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
 			}
 		}
 		function onKeyDownA(event){
 			event.preventDefault();
 			if(event.char === "a"){
-				s1.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
+				character.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
 			}
 		}
 		function onKeyDownD(event){
 			event.preventDefault();
 			if(event.char === "d"){
-				s1.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
+				character.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
 			}
 		}
 
@@ -175,25 +176,25 @@
 		function onKeyPressedW(event){
 			event.preventDefault();
 			if(event.char === "w"){
-				s1.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+				character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
 			}
 		}
 		function onKeyPressedS(event){
 			event.preventDefault();
 			if(event.char === "s"){
-				s1.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
+				character.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
 			}
 		}
 		function onKeyPressedA(event){
 			event.preventDefault();
 			if(event.char === "a"){
-				s1.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
+				character.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
 			}
 		}
 		function onKeyPressedD(event){
 			event.preventDefault();
 			if(event.char === "d"){
-				s1.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
+				character.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
 			}
 		}
 
@@ -252,13 +253,15 @@
 								Z + i * STEP);
 			plane.rotation.x = -Math.PI/2;
 			plane.receiveShadow = true;
-			obstacles.push(plane);
+			// obstacles = obstacles.concat(plane);
+			scene.add(plane);
 			ceiling.position.set( X + j * STEP,
 								WALLH,
 								Z + i * STEP);
 			ceiling.rotation.x = Math.PI/2;
 			ceiling.receiveShadow = true;
-			obstacles.push(ceiling);
+			// obstacles = obstacles.concat(ceiling);
+			scene.add(ceiling);
         }
 
 		/*Function generating the walls, depending on
@@ -280,7 +283,8 @@
                                         0);
 					wall.receiveShadow = true;
 					wall.castShadow = true;
-					obstacles.push(wall);
+					// obstacles = obstacles.concat(wall);
+					scene.add(wall);
                 }
             }
         }
@@ -546,16 +550,16 @@
 		/*Generates raycasters between character and walls
 		http://webmaestro.fr/collisions-detection-three-js-raycasting/*/
 		raycast = function(){
-			var origin = new THREE.Vector3(s1.position.x,
-										   s1.position.y,
-										   s1.position.z);
+			var origin = new THREE.Vector3(character.position.x,
+										   character.position.y,
+										   character.position.z);
 			origin.normalize();
 			for(v in vertices){
 				var objective = new THREE.Vector3(v.x,
 												  v.y,
 												  v.z);
 				objective.normalize();
-				rays.push(new THREE.Raycaster(origin, objective, 15, 50));
+				rays = rays.concat(new THREE.Raycaster(origin, objective, 15, 50));
 			}
 		}
 
@@ -568,17 +572,16 @@
 
 		/*Draws visible portions of the labyrinth each frame*/
 		draw = function(){
+			// var charX = character.position.x;
+			// var charZ = character.position.z;
 			for(obs in obstacles){
-				//TODO
-				//Per ogni ostacolo, se è oltre la distanza di visione viene
-				//rimosso; se è entro la distanza di visione viene rimosso e aggiunto?
-				//Controllare se fattibile per ridurre il numero di controlli e di loop
+			// var obsX = obs.position.x;
+			// var obsZ = obs.position.z;
+			// 	scene.remove(obs);
+			// 	if(calculateDistance(charX, charZ, obsX, obsZ) < VIEWDIST){
+					scene.add(obs);
+			// 	}
 			}
-		}
-
-		/*Calculates the index of the matrix of a given position*/
-		calculateIndex = function(positionX, positionZ){
-
 		}
 
 		/*Starts the game*/
@@ -590,19 +593,19 @@
 			emissive: 0x00b600, emissiveIntensity: 2});
 			var sm2 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0,
 			emissive: 0xb60000, emissiveIntensity: 4});
-			s1 = new THREE.Mesh(sg, sm1);
+			character = new THREE.Mesh(sg, sm1);
 			s2 = new THREE.Mesh(sg, sm2);
-			s1.position.set(X + start[0] * STEP,
+			character.position.set(X + start[0] * STEP,
 							170,
 							Z + start[1] * STEP);
 			s2.position.set(X + end[0] * STEP,
 							50,
 							Z + end[1] * STEP);
-			scene.add(s1);
+			scene.add(character);
 			scene.add(s2);
-			personalCamera.position.set(s1.position.x + 50,
-			 							s1.position.y,
-										s1.position.z);
+			personalCamera.position.set(character.position.x + 50,
+			 							character.position.y,
+										character.position.z);
 		}
 
 		/*Main function, generating the labyrinth and
@@ -624,9 +627,9 @@
 		/*Updates the camera position relatively to the character
 		and the character facing direction*/
 		cameraUpdate = function(){
-			var spherex = s1.position.x;
-			var spherey = s1.position.y;
-			var spherez = s1.position.z;
+			var spherex = character.position.x;
+			var spherey = character.position.y;
+			var spherez = character.position.z;
 			var currCamX = personalCamera.position.x;
 			var currCamY = personalCamera.position.y;
 			var currCamZ = personalCamera.position.z;
@@ -657,7 +660,7 @@
 											spherez + z1);
 			forwards = new THREE.Vector3(x1, 0 , z1);
 			personalCamera.lookAt(target);
-			s1.lookAt(carrot);
+			character.lookAt(carrot);
 			draw();
 		}
 
