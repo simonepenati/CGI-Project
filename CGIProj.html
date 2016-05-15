@@ -46,11 +46,12 @@
 		var distMax = (COLS*ROWS)/(COLS+ROWS);
 		var start = new Array(0, 0);
 		var end = new Array(0, 0);
-		var character, s2;
+		var character;
+		var s2;
 		var vertices;
-		var rays = new Array();
-		var intersects = new Array();
-		var obstacles = new Array();
+		var rays = [];
+		var intersects = [];
+		var obstacles = [];
 		var matrix;
 
 		var axisX = new THREE.Vector3(1, 0, 0);
@@ -253,14 +254,14 @@
 								Z + i * STEP);
 			plane.rotation.x = -Math.PI/2;
 			plane.receiveShadow = true;
-			// obstacles = obstacles.concat(plane);
+			obstacles = obstacles.concat(plane);
 			scene.add(plane);
 			ceiling.position.set( X + j * STEP,
 								WALLH,
 								Z + i * STEP);
 			ceiling.rotation.x = Math.PI/2;
 			ceiling.receiveShadow = true;
-			// obstacles = obstacles.concat(ceiling);
+			obstacles = obstacles.concat(ceiling);
 			scene.add(ceiling);
         }
 
@@ -283,7 +284,7 @@
                                         0);
 					wall.receiveShadow = true;
 					wall.castShadow = true;
-					// obstacles = obstacles.concat(wall);
+					obstacles = obstacles.concat(wall);
 					scene.add(wall);
                 }
             }
@@ -547,8 +548,7 @@
 			}
 		}
 
-		/*Generates raycasters between character and walls
-		http://webmaestro.fr/collisions-detection-three-js-raycasting/*/
+		/*Generates raycasters between character and walls*/
 		raycast = function(){
 			var origin = new THREE.Vector3(character.position.x,
 										   character.position.y,
@@ -572,15 +572,16 @@
 
 		/*Draws visible portions of the labyrinth each frame*/
 		draw = function(){
-			// var charX = character.position.x;
-			// var charZ = character.position.z;
-			for(obs in obstacles){
-			// var obsX = obs.position.x;
-			// var obsZ = obs.position.z;
-			// 	scene.remove(obs);
-			// 	if(calculateDistance(charX, charZ, obsX, obsZ) < VIEWDIST){
+			var charX = character.position.x;
+			var charZ = character.position.z;
+			for(n=0; n<obstacles.length; n++){
+				var obs = obstacles[n];
+				var obsX = obs.position.x;
+				var obsZ = obs.position.z;
+				scene.remove(obs);
+				if(calculateDistance(charX, charZ, obsX, obsZ) < VIEWDIST){
 					scene.add(obs);
-			// 	}
+				}
 			}
 		}
 
@@ -601,6 +602,7 @@
 			s2.position.set(X + end[0] * STEP,
 							50,
 							Z + end[1] * STEP);
+			draw();
 			scene.add(character);
 			scene.add(s2);
 			personalCamera.position.set(character.position.x + 50,
@@ -620,7 +622,6 @@
                     generateWalls(i, j);
                 }
             }
-            draw();
 			initGame();
         }
 
@@ -667,8 +668,8 @@
 		/*Rendering function*/
 		animate = function(){
 			requestAnimationFrame(animate);
-			raycast();
-			collideCheck();
+			// raycast();
+			// collideCheck();
 			cameraUpdate();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
