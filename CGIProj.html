@@ -25,6 +25,7 @@
 
 		var SEED = 80;
 		var VIEWDIST = 600;
+		var BOUND = 20;
 
 		var NULLVALUE = -1;
 		var NULLCELL = new THREE.Vector4(NULLVALUE, NULLVALUE, NULLVALUE, NULLVALUE);
@@ -48,7 +49,6 @@
 		var end = new Array(0, 0);
 		var character;
 		var s2;
-		var vertices;
 		var rays = [];
 		var intersects = [];
 		var obstacles = [];
@@ -60,7 +60,7 @@
 		var axisXNeg = new THREE.Vector3(-1, 0, 0);
 		var axisYNeg = new THREE.Vector3(0, -1, 0);
 		var axisZNeg = new THREE.Vector3(0, 0, -1);
-		var forwards;
+		var forwards = new THREE.Vector3(0, 0, 0);
 
         /*Texture urls*/
         var URL1 = path + "wall2.jpg";
@@ -80,11 +80,9 @@
 		document.addEventListener("mouseup", onMouseUp, false);
 		document.addEventListener("mousewheel", onMouseWheel, false);
 		document.addEventListener("keydown", onKeyDownW, false);
-		document.addEventListener("keydown", onKeyDownS, false);
 		document.addEventListener("keydown", onKeyDownA, false);
 		document.addEventListener("keydown", onKeyDownD, false);
 		document.addEventListener("keypressed", onKeyPressedW, false);
-		document.addEventListener("keypressed", onKeyPressedS, false);
 		document.addEventListener("keypressed", onKeyPressedA, false);
 		document.addEventListener("keypressed", onKeyPressedD, false);
 		document.addEventListener("keyup", onKeyUp, false);
@@ -128,7 +126,6 @@
 		/*Updates movement when mouse clicked and moved*/
 		function onMouseMove(event){
 			if (isUserInteractingMouse === true) {
-				var oldLon = lon;
 				lon = (pointerX - event.clientX) * 0.5 + pointerLon;
 				lat = (event.clientY - pointerY) * 0.5 + pointerLat;
 				if(lon > 360){
@@ -154,22 +151,22 @@
 				character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
 			}
 		}
-		function onKeyDownS(event){
-			event.preventDefault();
-			if(event.char === "s"){
-				character.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
-			}
-		}
 		function onKeyDownA(event){
 			event.preventDefault();
 			if(event.char === "a"){
-				character.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
+				lon -= 5;
+				if(lon > 360){
+					lon -= 360;
+				}
 			}
 		}
 		function onKeyDownD(event){
 			event.preventDefault();
 			if(event.char === "d"){
-				character.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
+				lon += 5;
+				if(lon > 360){
+					lon -= 360;
+				}
 			}
 		}
 
@@ -180,22 +177,22 @@
 				character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
 			}
 		}
-		function onKeyPressedS(event){
-			event.preventDefault();
-			if(event.char === "s"){
-				character.translateOnAxis(axisZ, STEP/10 * 0.2 * speed);
-			}
-		}
 		function onKeyPressedA(event){
 			event.preventDefault();
 			if(event.char === "a"){
-				character.translateOnAxis(axisX, -STEP/10 * 0.2 * speed);
+				lon -= 5;
+				if(lon > 360){
+					lon -= 360;
+				}
 			}
 		}
 		function onKeyPressedD(event){
 			event.preventDefault();
 			if(event.char === "d"){
-				character.translateOnAxis(axisX, STEP/10 * 0.2 * speed);
+				lon += 5;
+				if(lon > 360){
+					lon -= 360;
+				}
 			}
 		}
 
@@ -255,14 +252,12 @@
 			plane.rotation.x = -Math.PI/2;
 			plane.receiveShadow = true;
 			obstacles = obstacles.concat(plane);
-			scene.add(plane);
 			ceiling.position.set( X + j * STEP,
 								WALLH,
 								Z + i * STEP);
 			ceiling.rotation.x = Math.PI/2;
 			ceiling.receiveShadow = true;
 			obstacles = obstacles.concat(ceiling);
-			scene.add(ceiling);
         }
 
 		/*Function generating the walls, depending on
@@ -285,7 +280,6 @@
 					wall.receiveShadow = true;
 					wall.castShadow = true;
 					obstacles = obstacles.concat(wall);
-					scene.add(wall);
                 }
             }
         }
@@ -554,20 +548,39 @@
 										   character.position.y,
 										   character.position.z);
 			origin.normalize();
-			for(v in vertices){
-				var objective = new THREE.Vector3(v.x,
-												  v.y,
-												  v.z);
-				objective.normalize();
-				rays = rays.concat(new THREE.Raycaster(origin, objective, 15, 50));
-			}
+			rays = rays.concat(new THREE.Raycaster(origin, axisX, 15, 50));
+			rays = rays.concat(new THREE.Raycaster(origin, axisY, 15, 50));
+			rays = rays.concat(new THREE.Raycaster(origin, axisZ, 15, 50));
+			rays = rays.concat(new THREE.Raycaster(origin, axisXNeg, 15, 50));
+			rays = rays.concat(new THREE.Raycaster(origin, axisYNeg, 15, 50));
+			rays = rays.concat(new THREE.Raycaster(origin, axisZNeg, 15, 50));
 		}
 
 		/*Checks collisions*/
 		collideCheck = function(){
-			// for(i=0; i<rays.length; i++){
-			// 	intersects.push(rays[i].intersectObject(scene, true));
-			// }
+			for(i=0; i<rays.length; i++){
+				intersects = intersects.concat(rays[i].intersectObject(scene, true));
+			}
+			for(t=0; t<intersects.length; t++){
+				if(intersects[t].distance <= BOUND){
+					var collisionPoint = intersects[t].point;
+					var collisionVector = new THREE.Vector3(
+										Math.abs(collisionPoint.x - character.position.x),
+										Math.abs(collisionPoint.y - character.position.y),
+										Math.abs(collisionPoint.z - character.position.z)
+										);
+					collisionVector.normalize();
+					if(collisionVector.dot(forwards) > 0){
+						var angle = collisionVector.angleTo(forwards);
+						if(collisionPoint.x - character.position.x >= 0 &&
+							collisionPoint.z - character.position.z >= 0){
+								forwards.applyAxisAngle(axisY, angle);
+							} else {
+								forwards.applyAxisAngle(axisY, -angle);
+							}
+					}
+				}
+			}
 		}
 
 		/*Draws visible portions of the labyrinth each frame*/
@@ -587,8 +600,7 @@
 
 		/*Starts the game*/
 		initGame = function(){
-			var sg = new THREE.SphereGeometry(20, 15, 15);
-			vertices = sg.vertices;
+			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
 			var lol = new THREE.TextureLoader().load(URL1);
 			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0,
 			emissive: 0x00b600, emissiveIntensity: 2});
@@ -602,9 +614,9 @@
 			s2.position.set(X + end[0] * STEP,
 							50,
 							Z + end[1] * STEP);
+			obstacles = obstacles.concat(s2);
 			draw();
 			scene.add(character);
-			scene.add(s2);
 			personalCamera.position.set(character.position.x + 50,
 			 							character.position.y,
 										character.position.z);
@@ -656,10 +668,8 @@
 			personalCamera.position.z += z1;
 
 			var target = new THREE.Vector3(spherex, spherey, spherez);
-			var carrot = new THREE.Vector3(spherex + x1,
-											spherey,
-											spherez + z1);
-			forwards = new THREE.Vector3(x1, 0 , z1);
+			forwards.set(x1, 0 , z1);
+			var carrot = forwards.addVectors(target, forwards);
 			personalCamera.lookAt(target);
 			character.lookAt(carrot);
 			draw();
@@ -668,7 +678,7 @@
 		/*Rendering function*/
 		animate = function(){
 			requestAnimationFrame(animate);
-			// raycast();
+			raycast();
 			// collideCheck();
 			cameraUpdate();
 			// renderer.render(scene, camera);
