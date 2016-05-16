@@ -24,7 +24,7 @@
         var WALLD = 30;
 
 		var SEED = 80;
-		var VIEWDIST = 600;
+		var VIEWDIST = 400;
 		var BOUND = 20;
 
 		var NULLVALUE = -1;
@@ -50,17 +50,25 @@
 		var character;
 		var s2;
 		var rays = [];
-		var intersects = [];
 		var obstacles = [];
 		var matrix;
 
 		var axisX = new THREE.Vector3(1, 0, 0);
 		var axisY = new THREE.Vector3(0, 1, 0);
 		var axisZ = new THREE.Vector3(0, 0, 1);
-		var axisXNeg = new THREE.Vector3(-1, 0, 0);
-		var axisYNeg = new THREE.Vector3(0, -1, 0);
-		var axisZNeg = new THREE.Vector3(0, 0, -1);
+
+		var axisEast = new THREE.Vector3(0, 0, 0);
+		var axisSouth = new THREE.Vector3(0, 0, 0);
+		var axisWest = new THREE.Vector3(0, 0, 0);
+		var axisNorth = new THREE.Vector3(0, 0, 0);
+		var axisNorthEast = new THREE.Vector3(0, 0, 0);
+		var axisNorthWest = new THREE.Vector3(0, 0, 0);
+		var axisSouthEast = new THREE.Vector3(0, 0, 0);
+		var axisSouthWest = new THREE.Vector3(0, 0, 0);
+
 		var forwards = new THREE.Vector3(0, 0, 0);
+		var carrot = new THREE.Vector3(0, 0, 0);
+		var canGo = true;
 
         /*Texture urls*/
         var URL1 = path + "wall2.jpg";
@@ -102,7 +110,7 @@
 
 		/*Lights*/
 		lights = function(){
-			var pointLight = new THREE.PointLight(0xdd8800, 40, 350, 2);
+			var pointLight = new THREE.PointLight(0xdd8800, 10, 350, 2);
 			pointLight.position.set(0, 0, 0);
 
 			pointLight.castShadow = true;
@@ -148,7 +156,9 @@
 		function onKeyDownW(event){
 			event.preventDefault();
 			if(event.char === "w"){
-				character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+				if(canGo){
+					character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+				}
 			}
 		}
 		function onKeyDownA(event){
@@ -174,7 +184,9 @@
 		function onKeyPressedW(event){
 			event.preventDefault();
 			if(event.char === "w"){
-				character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+				if(canGo){
+					character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+				}
 			}
 		}
 		function onKeyPressedA(event){
@@ -266,7 +278,7 @@
 			var vector = matrix[i][j];
             for(w=0; w<4; w++){
                 if(vector.getComponent(w) == 1){
-                    var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD);
+                    var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD, 10, 10, 10);
 			        var wallText = new THREE.TextureLoader().load(URL1);
                     var wallMat = new THREE.MeshLambertMaterial({color: 0x666666,
 									map: wallText});
@@ -544,40 +556,62 @@
 
 		/*Generates raycasters between character and walls*/
 		raycast = function(){
+			rays.length = 0;
 			var origin = new THREE.Vector3(character.position.x,
 										   character.position.y,
 										   character.position.z);
-			origin.normalize();
-			rays = rays.concat(new THREE.Raycaster(origin, axisX, 15, 50));
-			rays = rays.concat(new THREE.Raycaster(origin, axisY, 15, 50));
-			rays = rays.concat(new THREE.Raycaster(origin, axisZ, 15, 50));
-			rays = rays.concat(new THREE.Raycaster(origin, axisXNeg, 15, 50));
-			rays = rays.concat(new THREE.Raycaster(origin, axisYNeg, 15, 50));
-			rays = rays.concat(new THREE.Raycaster(origin, axisZNeg, 15, 50));
+			axisEast = new THREE.Vector3(origin.x + 1, origin.y, origin.z);
+			axisEast.normalize();
+			axisSouth = new THREE.Vector3(origin.x, origin.y, origin.z + 1);
+			axisSouth.normalize();
+			axisWest = new THREE.Vector3(origin.x - 1, origin.y, origin.z);
+			axisWest.normalize();
+			axisNorth = new THREE.Vector3(origin.x, origin.y, origin.z - 1);
+			axisNorth.normalize();
+			axisNorthEast = new THREE.Vector3(origin.x + 1, origin.y, origin.z - 1);
+			axisNorthEast.normalize();
+			axisNorthWest = new THREE.Vector3(origin.x - 1, origin.y, origin.z - 1);
+			axisNorthWest.normalize();
+			axisSouthEast = new THREE.Vector3(origin.x + 1, origin.y, origin.z + 1);
+			axisSouthEast.normalize();
+			axisSouthWest = new THREE.Vector3(origin.x - 1, origin.y, origin.z + 1);
+			axisSouthWest.normalize();
+
+			rays = rays.concat(new THREE.Raycaster(origin, axisEast, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisSouth, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisWest, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisNorth, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisNorthEast, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisNorthWest, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisSouthEast, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisSouthWest, 0, 3 * BOUND));
 		}
 
 		/*Checks collisions*/
 		collideCheck = function(){
+			var intersections = [];
 			for(i=0; i<rays.length; i++){
-				intersects = intersects.concat(rays[i].intersectObject(scene, true));
+				intersections = intersections.concat(rays[i].intersectObject(scene, true));
 			}
-			for(t=0; t<intersects.length; t++){
-				if(intersects[t].distance <= BOUND){
-					var collisionPoint = intersects[t].point;
-					var collisionVector = new THREE.Vector3(
-										Math.abs(collisionPoint.x - character.position.x),
-										Math.abs(collisionPoint.y - character.position.y),
-										Math.abs(collisionPoint.z - character.position.z)
-										);
-					collisionVector.normalize();
-					if(collisionVector.dot(forwards) > 0){
-						var angle = collisionVector.angleTo(forwards);
-						if(collisionPoint.x - character.position.x >= 0 &&
-							collisionPoint.z - character.position.z >= 0){
-								forwards.applyAxisAngle(axisY, angle);
-							} else {
-								forwards.applyAxisAngle(axisY, -angle);
-							}
+			for(t=0; t<intersections.length; t++){
+				if(intersections[t].distance <= BOUND){
+					var collisionPoint = intersections[t].point;
+					var XDiff = collisionPoint.x - character.position.x;
+					var YDiff = collisionPoint.y - character.position.y
+					var ZDiff = collisionPoint.z - character.position.z
+					var collisionVector = new THREE.Vector3(XDiff, YDiff, ZDiff);
+					wayMod = calculateDistance(forwards.x, forwards.z, 0, 0);
+					colMod = calculateDistance(collisionPoint.x, collisionPoint.z,
+											   character.position.x, character.position.z);
+					wayColMod = calculateDistance(carrot.x, carrot.z,
+												  collisionPoint.x, collisionPoint.z);
+					cosAngle = (Math.pow(wayMod, 2) + Math.pow(colMod, 2) -
+								Math.pow(wayColMod, 2))/(2 * wayMod * colMod);
+					// sinAngle =
+					if(cosAngle > 0){
+						canGo = false;
+					}else {
+						canGo = true;
 					}
 				}
 			}
@@ -669,7 +703,7 @@
 
 			var target = new THREE.Vector3(spherex, spherey, spherez);
 			forwards.set(x1, 0 , z1);
-			var carrot = forwards.addVectors(target, forwards);
+			carrot = forwards.addVectors(target, forwards);
 			personalCamera.lookAt(target);
 			character.lookAt(carrot);
 			draw();
@@ -679,7 +713,7 @@
 		animate = function(){
 			requestAnimationFrame(animate);
 			raycast();
-			// collideCheck();
+			collideCheck();
 			cameraUpdate();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
