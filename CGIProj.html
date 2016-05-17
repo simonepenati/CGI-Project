@@ -97,7 +97,7 @@
 
         /*Scene and Fog init*/
         var scene = new THREE.Scene();
-		var fog = new THREE.Fog(0x000005, 370, 10000);
+		var fog = new THREE.Fog(0x000005, 370, 1000);
 		scene.add(fog);
 
 		/*Standard Camera Init*/
@@ -577,14 +577,14 @@
 			axisSouthWest = new THREE.Vector3(origin.x - 1, origin.y, origin.z + 1);
 			axisSouthWest.normalize();
 
-			rays = rays.concat(new THREE.Raycaster(origin, axisEast, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisSouth, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisWest, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisNorth, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisNorthEast, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisNorthWest, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisSouthEast, 0, 3 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(origin, axisSouthWest, 0, 3 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisEast, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisSouth, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisWest, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisNorth, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisNorthEast, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisNorthWest, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisSouthEast, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(origin, axisSouthWest, 0, 1.5 * BOUND));
 		}
 
 		/*Checks collisions*/
@@ -594,23 +594,25 @@
 				intersections = intersections.concat(rays[i].intersectObject(scene, true));
 			}
 			for(t=0; t<intersections.length; t++){
-				if(intersections[t].distance <= BOUND){
-					var collisionPoint = intersections[t].point;
-					var XDiff = collisionPoint.x - character.position.x;
-					var YDiff = collisionPoint.y - character.position.y
-					var ZDiff = collisionPoint.z - character.position.z
-					var collisionVector = new THREE.Vector3(XDiff, YDiff, ZDiff);
-					wayMod = calculateDistance(forwards.x, forwards.z, 0, 0);
-					colMod = calculateDistance(collisionPoint.x, collisionPoint.z,
+				var collisionPoint = intersections[t].point;
+				var colMod = calculateDistance(collisionPoint.x, collisionPoint.z,
+										   character.position.x, character.position.z);
+				if(colMod <= BOUND){
+					var wayMod = calculateDistance(carrot.x, carrot.z,
 											   character.position.x, character.position.z);
-					wayColMod = calculateDistance(carrot.x, carrot.z,
+					var wayColMod = calculateDistance(carrot.x, carrot.z,
 												  collisionPoint.x, collisionPoint.z);
-					cosAngle = (Math.pow(wayMod, 2) + Math.pow(colMod, 2) -
-								Math.pow(wayColMod, 2))/(2 * wayMod * colMod);
+					var waySqr = wayMod * wayMod;
+					var colSqr = wayMod * wayMod;
+					var wayColSqr = wayColMod/2 * wayColMod/2;
+					var twoProd = 2 * wayMod * wayMod;
+					var cosAngle = waySqr + colSqr - wayColSqr;
+					cosAngle = cosAngle/twoProd;
 					// sinAngle =
+					// console.log(wayMod, colMod, wayColMod, cosAngle);
 					if(cosAngle > 0){
 						canGo = false;
-					}else {
+					}else{
 						canGo = true;
 					}
 				}
