@@ -557,58 +557,47 @@
 		/*Generates raycasters between character and walls*/
 		raycast = function(){
 			rays.length = 0;
-			// axisEast = new THREE.Vector3(character.position.x + 1, character.position.y, character.position.z);
-			// axisEast.normalize();
-			// axisSouth = new THREE.Vector3(character.position.x, character.position.y, character.position.z + 1);
-			// axisSouth.normalize();
-			// axisWest = new THREE.Vector3(character.position.x - 1, character.position.y, character.position.z);
-			// axisWest.normalize();
-			// axisNorth = new THREE.Vector3(character.position.x, character.position.y, character.position.z - 1);
-			// axisNorth.normalize();
-			// axisNorthEast = new THREE.Vector3(character.position.x + 1, character.position.y, character.position.z - 1);
-			// axisNorthEast.normalize();
-			// axisNorthWest = new THREE.Vector3(character.position.x - 1, character.position.y, character.position.z - 1);
-			// axisNorthWest.normalize();
-			// axisSouthEast = new THREE.Vector3(character.position.x + 1, character.position.y, character.position.z + 1);
-			// axisSouthEast.normalize();
-			// axisSouthWest = new THREE.Vector3(character.position.x - 1, character.position.y, character.position.z + 1);
-			// axisSouthWest.normalize();
-			//
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisEast, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisSouth, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisWest, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisNorth, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisNorthEast, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisNorthWest, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisSouthEast, 0, 1.5 * BOUND));
-			// rays = rays.concat(new THREE.Raycaster(character.position, axisSouthWest, 0, 1.5 * BOUND));
+			south = new THREE.Vector3(character.position.x + forwards.x,
+											character.position.y,
+											character.position.z + forwards.z);
+			south.normalize();
+			north = new THREE.Vector3(character.position.x - forwards.x,
+											character.position.y,
+											character.position.z - forwards.z);
+			north.normalize();
+			east = new THREE.Vector3(character.position.x - forwards.z,
+											character.position.y,
+											character.position.z + forwards.x);
+			east.normalize();
+			west = new THREE.Vector3(character.position.x + forwards.z,
+											character.position.y,
+											character.position.z - forwards.x);
+			west.normalize();
+			northEast = new THREE.Vector3(north.x + east.x - character.position.x,
+											character.position.y,
+											north.z + east.z - character.position.z);
+			northEast.normalize();
+			northWest = new THREE.Vector3(north.x + west.x - character.position.x,
+											character.position.y,
+											north.z + west.z - character.position.z);
+			northWest.normalize();
+			southEast = new THREE.Vector3(south.x + east.x - character.position.x,
+											character.position.y,
+											south.z + east.z - character.position.z);
+			southEast.normalize();
+			southWest = new THREE.Vector3(south.x + west.x - character.position.x,
+											character.position.y,
+											south.z + west.z - character.position.z);
+			southWest.normalize();
 
-
-			axisSouth = new THREE.Vector3(character.position.x + forwards.x, character.position.y, character.position.z + forwards.z);
-			axisSouth.normalize();
-			axisNorth = new THREE.Vector3(character.position.x - forwards.x, character.position.y, character.position.z - forwards.z);
-			axisNorth.normalize();
-			axisEast = new THREE.Vector3(character.position.x - forwards.z, character.position.y, character.position.z + forwards.x);
-			axisWest.normalize();
-			axisWest = new THREE.Vector3(character.position.x + forwards.z, character.position.y, character.position.z - forwards.x);
-			axisEast.normalize();
-			axisNorthEast = new THREE.Vector3(axisNorth.x + axisEast.x, character.position.y, axisNorth.z + axisEast.z);
-			axisNorthEast.normalize();
-			axisNorthWest = new THREE.Vector3(axisNorth.x + axisWest.x, character.position.y, axisNorth.z + axisWest.z);
-			axisNorthWest.normalize();
-			axisSouthEast = new THREE.Vector3(axisSouth.x + axisEast.x, character.position.y, axisSouth.z + axisEast.z);
-			axisSouthEast.normalize();
-			axisSouthWest = new THREE.Vector3(axisSouth.x + axisWest.x, character.position.y, axisSouth.z + axisWest.z);
-			axisSouthWest.normalize();
-
-			rays = rays.concat(new THREE.Raycaster(character.position, axisEast, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisSouth, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisWest, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisNorth, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisNorthEast, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisNorthWest, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisSouthEast, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, axisSouthWest, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, east, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, south, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, west, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, north, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, northEast, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, northWest, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, southEast, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, southWest, 0, 1.5 * BOUND));
 			}
 
 		/*Checks collisions*/
@@ -619,41 +608,17 @@
 			}
 			for(t=0; t<intersections.length; t++){
 				var collisionPoint = intersections[t].point;
-				// var colMod = calculateDistance(collisionPoint.x, collisionPoint.z,
-				// 						   	   character.position.x, character.position.z);
-				// if(colMod <= BOUND){
-				// 	var wayMod = calculateDistance(character.position.x + forwards.x,
-				// 								   character.position.z + forwards.z,
-				// 							   	   character.position.x, character.position.z);
-				// 	var wayColMod = calculateDistance(character.position.x + forwards.x,
-				// 									  character.position.z + forwards.z,
-				// 								  	  collisionPoint.x, collisionPoint.z);
-				// 	var waySqr = wayMod * wayMod;
-				// 	var colSqr = colMod * colMod;
-				// 	var wayColSqr = wayColMod * wayColMod;
-				// 	var twoProd = 2 * wayMod * colMod;
-				// 	var cosAngle = waySqr + colSqr - wayColSqr;
-				// 	cosAngle = -cosAngle/twoProd;
-					// sinAngle =
-					// console.log(wayMod, colMod, wayColMod, cosAngle);
-					// if(cosAngle > 0){
-					// 	canGo = false;
-					// }else{
-					// 	canGo = true;
-					// }
+				var collisionFace = intersections[t].face;
 					if(intersections[t].distance <= 1.1 * BOUND){
 						var myDirection = new THREE.Vector3(-forwards.x, 0, -forwards.z);
-						var collisionVector = new THREE.Vector3(collisionPoint.x - character.position.x,
+						var collisionVector = new THREE.Vector3(-collisionFace.normal.x,
 																0,
-																collisionPoint.z - character.position.z);
-						// myDirection.normalize();
-						// collisionVector.normalize();
+																-collisionFace.normal.z);
 						var angle = myDirection.angleTo(collisionVector);
 						angle = THREE.Math.radToDeg(angle);
-						// console.log(myDirection, collisionVector);
+						console.log(myDirection, collisionVector);
 						console.log(angle);
 					}
-				// }
 			}
 		}
 
