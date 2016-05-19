@@ -283,6 +283,7 @@
                     var wallMat = new THREE.MeshLambertMaterial({color: 0x666666,
 									map: wallText});
                     var wall = new THREE.Mesh(wallGeom, wallMat);
+					wall.name = "Wall";
                     wall.position.set(  X + (j - Math.sin(w * Math.PI/2)/2) * STEP,
                                         WALLH/2,
                                         Z + (i - Math.cos(w * Math.PI/2)/2) * STEP);
@@ -608,16 +609,47 @@
 			}
 			for(t=0; t<intersections.length; t++){
 				var collisionPoint = intersections[t].point;
-				var collisionFace = intersections[t].face;
+				var collisionObj = intersections[t].object;
 					if(intersections[t].distance <= 1.1 * BOUND){
 						var myDirection = new THREE.Vector3(-forwards.x, 0, -forwards.z);
-						var collisionVector = new THREE.Vector3(-collisionFace.normal.x,
-																0,
-																-collisionFace.normal.z);
+						var collisionVector = new THREE.Vector3(0, 0, 0);
+						switch(collisionObj.rotation.y){
+							case 0:
+								if(character.position.z > collisionObj.position.z){
+									collisionVector.set(0, 0, -1);
+								}else if(character.position.z < collisionObj.position.z){
+									collisionVector.set(0, 0, 1);
+								}
+								break;
+							case Math.PI/2:
+								if(character.position.x > collisionObj.position.x){
+									collisionVector.set(-1, 0, 0);
+								}else if(character.position.x < collisionObj.position.x){
+									collisionVector.set(1, 0, 0);
+								}
+								break;
+							case Math.PI:
+								if(character.position.z > collisionObj.position.z){
+									collisionVector.set(0, 0, -1);
+								}else if(character.position.z < collisionObj.position.z){
+									collisionVector.set(0, 0, 1);
+								}
+								break;
+							case 3 * Math.PI/2:
+								if(character.position.x > collisionObj.position.x){
+									collisionVector.set(-1, 0, 0);
+								}else if(character.position.x < collisionObj.position.x){
+									collisionVector.set(1, 0, 0);
+								}
+								break;
+							default: collisionVector.set(1, 0, 1);
+						}
 						var angle = myDirection.angleTo(collisionVector);
-						angle = THREE.Math.radToDeg(angle);
-						console.log(myDirection, collisionVector);
-						console.log(angle);
+						if(Math.cos(angle) > 0){
+							canGo = false;
+						}else{
+							canGo = true;
+						}
 					}
 			}
 		}
@@ -713,7 +745,7 @@
 			var z2 = BOUND * Math.sin(theta) * Math.sin(phi);
 
 			forwards.set(x2, 0 , z2);
-			// forwards.normalize();
+			forwards.normalize();
 
 			var target = new THREE.Vector3(spherex, spherey, spherez);
 			carrot.set(spherex + x2, spherey, spherez + z2);
