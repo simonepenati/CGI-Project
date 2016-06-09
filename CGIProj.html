@@ -70,10 +70,6 @@
 		var carrot = new THREE.Vector3(0, 0, 0);
 		var canGo = true;
 
-		/*Audio handling*/
-		var audio = new Audio("audio/dungeon_ambient.ogg");
-		audio.loop = true;
-
         /*Texture urls*/
         var URL1 = path + "wall2.jpg";
         var URL2 = path + "floor4.jpg";
@@ -98,11 +94,11 @@
 		document.addEventListener("keypressed", onKeyPressedA, false);
 		document.addEventListener("keypressed", onKeyPressedD, false);
 		document.addEventListener("keyup", onKeyUp, false);
-		document.addEventListener("onbeforeunload", onClose, false);
 
         /*Scene and Fog init*/
         var scene = new THREE.Scene();
-		scene.fog = new THREE.Fog(0x000005, 370, 1000);;
+		var fog = new THREE.Fog(0x000005, 370, 1000);
+		scene.add(fog);
 
 		/*Standard Camera Init*/
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
@@ -115,12 +111,13 @@
 		/*Lights*/
 		lights = function(){
 			var pointLight = new THREE.PointLight(0xdd8800, 10, 350, 2);
-			pointLight.position.set(0, 50, 30);
+			pointLight.position.set(0, 0, 0);
 
 			pointLight.castShadow = true;
 			pointLight.shadow.camera.near = 1;
 			pointLight.shadow.camera.far = 400;
 			pointLight.shadow.bias = 0.01;
+
 			character.add(pointLight);
 		}
 
@@ -212,11 +209,6 @@
 		}
 
 		function onKeyUp(event){}
-
-		/*Handling tab closing*/
-		function onClose(event){
-			audio.pause();
-		}
 
 		/*Function generating random numbers
 		to adjust proportion of walls created
@@ -677,50 +669,30 @@
 			}
 		}
 
-		/*Generates the character*/
-		addCharacter = function(){
+		/*Starts the game*/
+		initGame = function(){
 			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
-			var sm1 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0});
+			var lol = new THREE.TextureLoader().load(URL1);
+			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0,
+			emissive: 0x00b600, emissiveIntensity: 2, transparent: true, opacity: 0.2});
+			var sm2 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0,
+			emissive: 0xb60000, emissiveIntensity: 4});
 			character = new THREE.Mesh(sg, sm1);
-			// character.visible = false;
+			s2 = new THREE.Mesh(sg, sm2);
 			character.position.set(X + start[0] * STEP,
 							170,
 							Z + start[1] * STEP);
-			var rndNum = new THREE.Math.randInt(0, 3);
-			character.rotation.y += rndNum * Math.PI/2;
-			scene.add(character);
-			var objectLoader = new THREE.ObjectLoader();
-			objectLoader.load("json/legrasse.json",
-						function(obj){
-							obj.position.y -= 170;
-							obj.castShadow = false;
-							obj.name = "Legrasse"
-							character.add(obj);
-							console.log(obj);
-						});
-		}
-
-		/*Plays BGM*/
-		playAudio = function(){
-			audio.play();
-		}
-
-		/*Starts the game*/
-		initGame = function(){
-			addCharacter();
-			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
-			var sm2 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0,
-			emissive: 0xb60000, emissiveIntensity: 2});
-			s2 = new THREE.Mesh(sg, sm2);
 			s2.position.set(X + end[0] * STEP,
 							50,
 							Z + end[1] * STEP);
 			obstacles = obstacles.concat(s2);
 			draw();
+			var rndNum = new THREE.Math.randInt(0, 3);
+			character.rotation.y += rndNum * Math.PI/2;
+			scene.add(character);
 			personalCamera.position.set(character.position.x + 50,
 			 							character.position.y,
 										character.position.z);
-			playAudio();
 		}
 
 		/*Main function, generating the labyrinth and
@@ -781,14 +753,8 @@
 			personalCamera.lookAt(target);
 			character.lookAt(carrot);
 			draw();
-		}
-
-		/**/
-		loadAnimations = function(){
-			var childrenz = character.children;
-			// for(i=0;i<childrenz.length;i++){
-			// 	if()
-			// }
+			// console.log(character.position.x, character.position.y, character.position.z);
+			// console.log(forwards.x, forwards.y, forwards.z);
 		}
 
 		/*Rendering function*/
@@ -797,7 +763,6 @@
 			raycast();
 			collideCheck();
 			cameraUpdate();
-			// loadAnimations();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
 		}
