@@ -97,8 +97,7 @@
 
         /*Scene and Fog init*/
         var scene = new THREE.Scene();
-		var fog = new THREE.Fog(0x000005, 370, 1000);
-		scene.add(fog);
+		scene.fog = new THREE.Fog(0x000005, 370, 1000);
 
 		/*Standard Camera Init*/
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
@@ -111,13 +110,12 @@
 		/*Lights*/
 		lights = function(){
 			var pointLight = new THREE.PointLight(0xdd8800, 10, 350, 2);
-			pointLight.position.set(0, 0, 0);
+			pointLight.position.set(0, 50, 30);
 
 			pointLight.castShadow = true;
 			pointLight.shadow.camera.near = 1;
 			pointLight.shadow.camera.far = 400;
 			pointLight.shadow.bias = 0.01;
-
 			character.add(pointLight);
 		}
 
@@ -558,35 +556,35 @@
 		/*Generates raycasters between character and walls*/
 		raycast = function(){
 			rays.length = 0;
-			south = new THREE.Vector3(character.position.x + forwards.x,
-											character.position.y,
-											character.position.z + forwards.z);
+			south = new THREE.Vector3(	character.position.x + forwards.x,
+										character.position.y,
+										character.position.z + forwards.z);
 			south.normalize();
-			north = new THREE.Vector3(character.position.x - forwards.x,
-											character.position.y,
-											character.position.z - forwards.z);
+			north = new THREE.Vector3(	character.position.x - forwards.x,
+										character.position.y,
+										character.position.z - forwards.z);
 			north.normalize();
-			east = new THREE.Vector3(character.position.x - forwards.z,
-											character.position.y,
-											character.position.z + forwards.x);
+			east = new THREE.Vector3(	character.position.x - forwards.z,
+										character.position.y,
+										character.position.z + forwards.x);
 			east.normalize();
-			west = new THREE.Vector3(character.position.x + forwards.z,
-											character.position.y,
-											character.position.z - forwards.x);
+			west = new THREE.Vector3(	character.position.x + forwards.z,
+										character.position.y,
+										character.position.z - forwards.x);
 			west.normalize();
-			northEast = new THREE.Vector3(north.x + east.x - character.position.x,
+			northEast = new THREE.Vector3(	north.x + east.x - character.position.x,
 											character.position.y,
 											north.z + east.z - character.position.z);
 			northEast.normalize();
-			northWest = new THREE.Vector3(north.x + west.x - character.position.x,
+			northWest = new THREE.Vector3(	north.x + west.x - character.position.x,
 											character.position.y,
 											north.z + west.z - character.position.z);
 			northWest.normalize();
-			southEast = new THREE.Vector3(south.x + east.x - character.position.x,
+			southEast = new THREE.Vector3(	south.x + east.x - character.position.x,
 											character.position.y,
 											south.z + east.z - character.position.z);
 			southEast.normalize();
-			southWest = new THREE.Vector3(south.x + west.x - character.position.x,
+			southWest = new THREE.Vector3(	south.x + west.x - character.position.x,
 											character.position.y,
 											south.z + west.z - character.position.z);
 			southWest.normalize();
@@ -642,7 +640,7 @@
 									collisionVector.set(1, 0, 0);
 								}
 								break;
-							default: collisionVector.set(1, 0, 1);
+							default: collisionVector.set(0.1, 0, 0.1);
 						}
 						var angle = myDirection.angleTo(collisionVector);
 						if(Math.cos(angle) > 0){
@@ -669,27 +667,42 @@
 			}
 		}
 
-		/*Starts the game*/
-		initGame = function(){
+		/*Generates the character*/
+		addCharacter = function(){
 			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
-			var lol = new THREE.TextureLoader().load(URL1);
-			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0,
-			emissive: 0x00b600, emissiveIntensity: 2, transparent: true, opacity: 0.2});
-			var sm2 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0,
-			emissive: 0xb60000, emissiveIntensity: 4});
+			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0});
 			character = new THREE.Mesh(sg, sm1);
-			s2 = new THREE.Mesh(sg, sm2);
+			// character.visible = false;
 			character.position.set(X + start[0] * STEP,
 							170,
 							Z + start[1] * STEP);
+			var rndNum = new THREE.Math.randInt(0, 3);
+			character.rotation.y += rndNum * Math.PI/2;
+			scene.add(character);
+			var objectLoader = new THREE.ObjectLoader();
+			objectLoader.load("json/legrasse.json",
+						function(obj){
+							obj.position.y -= 170;
+							obj.castShadow = false;
+							obj.name = "Legrasse"
+							// character.add(obj);
+							console.log(obj);
+						});
+		}
+
+
+		/*Starts the game*/
+		initGame = function(){
+			addCharacter();
+			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
+			var sm2 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0,
+			emissive: 0xb60000, emissiveIntensity: 2});
+			s2 = new THREE.Mesh(sg, sm2);
 			s2.position.set(X + end[0] * STEP,
 							50,
 							Z + end[1] * STEP);
 			obstacles = obstacles.concat(s2);
 			draw();
-			var rndNum = new THREE.Math.randInt(0, 3);
-			character.rotation.y += rndNum * Math.PI/2;
-			scene.add(character);
 			personalCamera.position.set(character.position.x + 50,
 			 							character.position.y,
 										character.position.z);
@@ -753,8 +766,14 @@
 			personalCamera.lookAt(target);
 			character.lookAt(carrot);
 			draw();
-			// console.log(character.position.x, character.position.y, character.position.z);
-			// console.log(forwards.x, forwards.y, forwards.z);
+		}
+
+		/**/
+		loadAnimations = function(){
+			var childrenz = character.children;
+			// for(i=0;i<childrenz.length;i++){
+			// 	if()
+			// }
 		}
 
 		/*Rendering function*/
@@ -763,6 +782,7 @@
 			raycast();
 			collideCheck();
 			cameraUpdate();
+			// loadAnimations();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
 		}
