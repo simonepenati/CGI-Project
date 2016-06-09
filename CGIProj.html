@@ -94,10 +94,16 @@
 		document.addEventListener("keypressed", onKeyPressedA, false);
 		document.addEventListener("keypressed", onKeyPressedD, false);
 		document.addEventListener("keyup", onKeyUp, false);
+		document.addEventListener("onbeforeunload", onClose, false);
 
         /*Scene and Fog init*/
         var scene = new THREE.Scene();
-		scene.fog = new THREE.Fog(0x000005, 370, 1000);
+		scene.fog = new THREE.Fog(0x000005, 380, 1000);
+
+		/*Audio*/
+		var audio = new Audio("audio/dungeon_ambient.ogg");
+		audio.play();
+		audio.loop = true;
 
 		/*Standard Camera Init*/
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
@@ -109,7 +115,7 @@
 
 		/*Lights*/
 		lights = function(){
-			var pointLight = new THREE.PointLight(0xdd8800, 10, 350, 2);
+			var pointLight = new THREE.PointLight(0xdd8800, 10, 370, 2);
 			pointLight.position.set(0, 50, 30);
 
 			pointLight.castShadow = true;
@@ -208,6 +214,10 @@
 
 		function onKeyUp(event){}
 
+		function onClose(event){
+			audio.pause();
+		}
+
 		/*Function generating random numbers
 		to adjust proportion of walls created
 		@return 0,1*/
@@ -261,12 +271,14 @@
 								Z + i * STEP);
 			plane.rotation.x = -Math.PI/2;
 			plane.receiveShadow = true;
+			plane.name = "Tile";
 			obstacles = obstacles.concat(plane);
 			ceiling.position.set( X + j * STEP,
 								WALLH,
 								Z + i * STEP);
 			ceiling.rotation.x = Math.PI/2;
 			ceiling.receiveShadow = true;
+			ceiling.name = "Tile";
 			obstacles = obstacles.concat(ceiling);
         }
 
@@ -643,6 +655,7 @@
 							default: collisionVector.set(0.1, 0, 0.1);
 						}
 						var angle = myDirection.angleTo(collisionVector);
+						console.log(THREE.Math.radToDeg(angle));
 						if(Math.cos(angle) > 0){
 							canGo = false;
 						}else{
@@ -685,7 +698,7 @@
 							obj.position.y -= 170;
 							obj.castShadow = false;
 							obj.name = "Legrasse"
-							// character.add(obj);
+							character.add(obj);
 							console.log(obj);
 						});
 		}
