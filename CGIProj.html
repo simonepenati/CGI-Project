@@ -601,14 +601,14 @@
 											south.z + west.z - character.position.z);
 			southWest.normalize();
 
-			rays = rays.concat(new THREE.Raycaster(character.position, east, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, south, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, west, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, north, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, northEast, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, northWest, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, southEast, 0, 1.5 * BOUND));
-			rays = rays.concat(new THREE.Raycaster(character.position, southWest, 0, 1.5 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, east, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, south, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, west, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, north, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, northEast, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, northWest, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, southEast, 0, 1.75 * BOUND));
+			rays = rays.concat(new THREE.Raycaster(character.position, southWest, 0, 1.75 * BOUND));
 			}
 
 		/*Checks collisions*/
@@ -620,46 +620,47 @@
 			for(t=0; t<intersections.length; t++){
 				var collisionPoint = intersections[t].point;
 				var collisionObj = intersections[t].object;
-					if(intersections[t].distance <= 1.1 * BOUND){
-						var myDirection = new THREE.Vector3(-forwards.x, 0, -forwards.z);
-						var collisionVector = new THREE.Vector3(0, 0, 0);
-						switch(collisionObj.rotation.y){
-							case 0:
-								if(character.position.z > collisionObj.position.z){
-									collisionVector.set(0, 0, -1);
-								}else if(character.position.z < collisionObj.position.z){
-									collisionVector.set(0, 0, 1);
-								}
-								break;
-							case Math.PI/2:
-								if(character.position.x > collisionObj.position.x){
-									collisionVector.set(-1, 0, 0);
-								}else if(character.position.x < collisionObj.position.x){
-									collisionVector.set(1, 0, 0);
-								}
-								break;
-							case Math.PI:
-								if(character.position.z > collisionObj.position.z){
-									collisionVector.set(0, 0, -1);
-								}else if(character.position.z < collisionObj.position.z){
-									collisionVector.set(0, 0, 1);
-								}
-								break;
-							case 3 * Math.PI/2:
-								if(character.position.x > collisionObj.position.x){
-									collisionVector.set(-1, 0, 0);
-								}else if(character.position.x < collisionObj.position.x){
-									collisionVector.set(1, 0, 0);
-								}
-								break;
-							default: collisionVector.set(0.1, 0, 0.1);
-						}
-						var angle = myDirection.angleTo(collisionVector);
-						console.log(THREE.Math.radToDeg(angle));
-						if(Math.cos(angle) > 0){
-							canGo = false;
-						}else{
-							canGo = true;
+						if(collisionObj.name === "Wall"){
+							if(intersections[t].distance <= 1.75 * BOUND){
+							var myDirection = new THREE.Vector3(-forwards.x, 0, -forwards.z);
+							var collisionVector = new THREE.Vector3(0, 0, 0);
+							switch(collisionObj.rotation.y){
+								case 0:
+									if(character.position.z > collisionObj.position.z){
+										collisionVector.set(0, 0, -1);
+									}else if(character.position.z < collisionObj.position.z){
+										collisionVector.set(0, 0, 1);
+									}
+									break;
+								case Math.PI/2:
+									if(character.position.x > collisionObj.position.x){
+										collisionVector.set(-1, 0, 0);
+									}else if(character.position.x < collisionObj.position.x){
+										collisionVector.set(1, 0, 0);
+									}
+									break;
+								case Math.PI:
+									if(character.position.z > collisionObj.position.z){
+										collisionVector.set(0, 0, -1);
+									}else if(character.position.z < collisionObj.position.z){
+										collisionVector.set(0, 0, 1);
+									}
+									break;
+								case 3 * Math.PI/2:
+									if(character.position.x > collisionObj.position.x){
+										collisionVector.set(-1, 0, 0);
+									}else if(character.position.x < collisionObj.position.x){
+										collisionVector.set(1, 0, 0);
+									}
+									break;
+								default: collisionVector.set(0.1, 0, 0.1);
+							}
+							var angle = myDirection.angleTo(collisionVector);
+							if(Math.cos(angle) > 0){
+								canGo = false;
+							}else{
+								canGo = true;
+							}
 						}
 					}
 			}
@@ -699,7 +700,6 @@
 							obj.castShadow = false;
 							obj.name = "Legrasse"
 							character.add(obj);
-							console.log(obj);
 						});
 		}
 
