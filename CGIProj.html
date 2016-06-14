@@ -2,14 +2,18 @@
 <html>
 	<head>
 		<meta charset=utf-8>
-		<title>Mr. LeGrasse in The Mysterious Maze</title>
+		<title>The Mysterious Maze</title>
 		<style>
 			body { margin: 0; cursor: none}
 			canvas { width: 100%; height: 100% }
 		</style>
 	</head>
 	<body>
-	<script src="three.js"></script>
+	<script src="js/three.js"></script>
+	<script src="js/ColladaLoader.js"></script>
+	<script src="js/Animation.js"></script>
+	<script src="js/AnimationHandler.js"></script>
+	<script src="js/KeyFrameAnimation.js"></script>
 	<script>
 
         /*GLOBAL CONSTANTS*/
@@ -17,11 +21,11 @@
         var HEIGHT = window.innerHeight-3;
         var COLS = 15;
         var ROWS = 10;
-        var STEP = 200;
+        var STEP = 230;
 
-        var WALLW = 230;
-        var WALLH = 400;
-        var WALLD = 30;
+        var WALLW = 270;
+        var WALLH = 330;
+        var WALLD = 40;
 
 		var SEED = 80;
 		var VIEWDIST = 400;
@@ -39,7 +43,7 @@
 		isUserInteractingMouse = false,
 		pointerX = 0, pointerY = 0,
 		pointerLon = 0, pointerLat = 0;
-		var rho = 10;
+		var rho = 12;
 
         var path = "textures/";
 
@@ -101,7 +105,7 @@
 		scene.fog = new THREE.Fog(0x000005, 380, 1000);
 
 		/*Audio*/
-		var audio = new Audio("audio/dungeon_ambient.ogg");
+		var audio = new Audio("audio/dungeon_ambient.mp3");
 		audio.play();
 		audio.loop = true;
 
@@ -109,6 +113,12 @@
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
         camera.position.set(0, 2500, 900);
         camera.lookAt(new THREE.Vector3(0,0,0));
+
+		/*Animations*/
+		var animationsLeggy = [];
+		var clock = new THREE.Clock();
+		var getAnimated = false;
+		var mixer = new THREE.AnimationMixer(character);
 
 		/*Personal Camera Init*/
 		var personalCamera = new THREE.PerspectiveCamera(75, WIDTH/HEIGHT, 1, 1000);
@@ -138,7 +148,7 @@
 		/*Updates movement when mouse clicked and moved*/
 		function onMouseMove(event){
 			if (isUserInteractingMouse === true) {
-				lon = (pointerX - event.clientX) * 0.5 + pointerLon;
+				lon = (event.clientX - pointerX) * 0.5 + pointerLon;
 				lat = (event.clientY - pointerY) * 0.5 + pointerLat;
 				if(lon > 360){
 					lon -= 360;
@@ -162,6 +172,7 @@
 			if(event.char === "w"){
 				if(canGo){
 					character.translateOnAxis(axisZ, -STEP/10 * 0.3 * speed);
+					getAnimated = true;
 				}
 			}
 		}
@@ -169,6 +180,7 @@
 			event.preventDefault();
 			if(event.char === "a"){
 				lon -= 5;
+				getAnimated = true;
 				if(lon > 360){
 					lon -= 360;
 				}
@@ -178,6 +190,7 @@
 			event.preventDefault();
 			if(event.char === "d"){
 				lon += 5;
+				getAnimated = true;
 				if(lon > 360){
 					lon -= 360;
 				}
@@ -212,7 +225,10 @@
 			}
 		}
 
-		function onKeyUp(event){}
+		function onKeyUp(event){
+			event.preventDefault();
+			getAnimated = false;
+		}
 
 		function onClose(event){
 			audio.pause();
@@ -288,7 +304,7 @@
 			var vector = matrix[i][j];
             for(w=0; w<4; w++){
                 if(vector.getComponent(w) == 1){
-                    var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD, 10, 10, 10);
+                    var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD, 15, 15, 15);
 			        var wallText = new THREE.TextureLoader().load(URL1);
                     var wallMat = new THREE.MeshLambertMaterial({color: 0x666666,
 									map: wallText});
@@ -683,24 +699,36 @@
 
 		/*Generates the character*/
 		addCharacter = function(){
-			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
-			var sm1 = new THREE.MeshPhongMaterial({color: 0x00b600, shininess: 0});
+			var sg = new THREE.SphereGeometry(0.01);
+			var sm1 = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.0});
 			character = new THREE.Mesh(sg, sm1);
-			// character.visible = false;
 			character.position.set(X + start[0] * STEP,
-							170,
+							130,
 							Z + start[1] * STEP);
 			var rndNum = new THREE.Math.randInt(0, 3);
 			character.rotation.y += rndNum * Math.PI/2;
 			scene.add(character);
-			var objectLoader = new THREE.ObjectLoader();
-			objectLoader.load("json/legrasse.json",
-						function(obj){
-							obj.position.y -= 170;
-							obj.castShadow = false;
-							obj.name = "Legrasse"
-							character.add(obj);
-						});
+			var daeLoader = new THREE.ColladaLoader();
+			daeLoader.options.convertUpAxis = true;
+			daeLoader.options.upAxis = new THREE.Vector3(0, 1, 0);
+			daeLoader.load("collada/monster.dae",
+							function(colladaObj){
+								colladaObj.scene.rotation.y += Math.PI/2;
+								colladaObj.scene.position.y -= 130;
+								colladaObj.scene.position.z += 40;
+								colladaObj.scene.scale.x = 0.05;
+								colladaObj.scene.scale.y = 0.07;
+								colladaObj.scene.scale.z = 0.06;
+								character.add(colladaObj.scene);
+								colladaObj.scene.traverse(function(child){
+															if (child instanceof THREE.SkinnedMesh){
+															var animation = new THREE.Animation(child, child.geometry.animation);
+															animation.loop = true;
+															animationsLeggy = animationsLeggy.concat(animation);
+														}
+								} );
+								colladaObj.scene.updateMatrix();
+							});
 		}
 
 
@@ -708,8 +736,7 @@
 		initGame = function(){
 			addCharacter();
 			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
-			var sm2 = new THREE.MeshPhongMaterial({color: 0xb60000, shininess: 0,
-			emissive: 0xb60000, emissiveIntensity: 2});
+			var sm2 = new THREE.MeshPhongMaterial({emissive: 0xb60000});
 			s2 = new THREE.Mesh(sg, sm2);
 			s2.position.set(X + end[0] * STEP,
 							50,
@@ -755,7 +782,7 @@
 			personalCamera.position.z += dZ * lerp;
 
 			lat = Math.max(-89, Math.min(89, lat));
-			rho = Math.max(1, Math.min(10, rho));
+			rho = Math.max(1, Math.min(12, rho));
 			theta = THREE.Math.degToRad(90 - lat);
 			phi = THREE.Math.degToRad(lon);
 			var x1 = rho * Math.sin(theta) * Math.cos(phi);
@@ -766,27 +793,34 @@
 			personalCamera.position.y += y1;
 			personalCamera.position.z += z1;
 
+			var target = new THREE.Vector3(spherex, spherey, spherez);
+			personalCamera.lookAt(target);
+
 			var x2 = BOUND * Math.sin(theta) * Math.cos(phi);
 			var y2 = BOUND * Math.cos(theta);
 			var z2 = BOUND * Math.sin(theta) * Math.sin(phi);
 
 			forwards.set(x2, 0 , z2);
 			forwards.normalize();
-
-			var target = new THREE.Vector3(spherex, spherey, spherez);
 			carrot.set(spherex + x2, spherey, spherez + z2);
-
-			personalCamera.lookAt(target);
 			character.lookAt(carrot);
+
 			draw();
 		}
 
 		/**/
-		loadAnimations = function(){
-			var childrenz = character.children;
-			// for(i=0;i<childrenz.length;i++){
-			// 	if()
-			// }
+		handleAnimations = function(){
+			if(getAnimated == true){
+				for(i=0; i<animationsLeggy.length; i++){
+					if(!animationsLeggy[i].isPlaying){
+						animationsLeggy[i].play();
+					}
+				}
+			}else{
+				for(i=0; i<animationsLeggy.length; i++){
+					animationsLeggy[i].stop();
+				}
+			}
 		}
 
 		/*Rendering function*/
@@ -795,7 +829,8 @@
 			raycast();
 			collideCheck();
 			cameraUpdate();
-			// loadAnimations();
+			THREE.AnimationHandler.update(clock.getDelta());
+			handleAnimations();
 			// renderer.render(scene, camera);
 			renderer.render(scene, personalCamera);
 		}
