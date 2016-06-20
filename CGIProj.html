@@ -77,11 +77,13 @@
         /*Texture urls*/
         var URL1 = path + "wall2.jpg";
         var URL2 = path + "floor4.jpg";
+		var URL3 = path + "sphere1.jpg";
 
         /*Basic Initialization*/
         var renderer = new THREE.WebGLRenderer({antialias: true});
         renderer.setSize(WIDTH, HEIGHT);
-        renderer.setClearColor(0x000000);
+        renderer.setClearColor(0x000005);
+		renderer.alpha = true;
 		renderer.shadowMap.enabled = true;
 		renderer.shadowMap.type = THREE.BasicShadowMap;
 		document.body.appendChild(renderer.domElement);
@@ -113,19 +115,28 @@
         var camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 1, 10000);
         camera.position.set(0, 2500, 900);
         camera.lookAt(new THREE.Vector3(0,0,0));
+		var pointLight = new THREE.PointLight(0xdd8800, 10, 370, 2);
 
 		/*Animations*/
 		var animationsLeggy = [];
 		var clock = new THREE.Clock();
 		var getAnimated = false;
 		var mixer = new THREE.AnimationMixer(character);
+		var count1 = 0;
+		var count2 = 0;
+
+		/*Pre-loads assets for the objective sphere*/
+		var stext = new THREE.TextureLoader().load(URL3);
+		var sm2 = new THREE.MeshPhongMaterial({emissive: 0x419abc, map: stext, color: 0x111111,
+			emissiveMap: stext,	emissiveIntensity: 4, shininess: 0, reflectivity: 0, opacity: 0,
+			transparent: true});
+
 
 		/*Personal Camera Init*/
 		var personalCamera = new THREE.PerspectiveCamera(75, WIDTH/HEIGHT, 1, 1000);
 
 		/*Lights*/
 		lights = function(){
-			var pointLight = new THREE.PointLight(0xdd8800, 10, 370, 2);
 			pointLight.position.set(0, 50, 30);
 
 			pointLight.castShadow = true;
@@ -686,6 +697,8 @@
 		draw = function(){
 			var charX = character.position.x;
 			var charZ = character.position.z;
+			var objX = s2.position.x;
+			var objZ = s2.position.z;
 			for(n=0; n<obstacles.length; n++){
 				var obs = obstacles[n];
 				var obsX = obs.position.x;
@@ -693,6 +706,9 @@
 				scene.remove(obs);
 				if(calculateDistance(charX, charZ, obsX, obsZ) < VIEWDIST){
 					scene.add(obs);
+				}
+				if(calculateDistance(charX, charZ, objX, objZ) < VIEWDIST){
+					s2.material.opacity = 1;
 				}
 			}
 		}
@@ -720,13 +736,15 @@
 								colladaObj.scene.scale.y = 0.07;
 								colladaObj.scene.scale.z = 0.06;
 								character.add(colladaObj.scene);
-								colladaObj.scene.traverse(function(child){
-															if (child instanceof THREE.SkinnedMesh){
-															var animation = new THREE.Animation(child, child.geometry.animation);
-															animation.loop = true;
-															animationsLeggy = animationsLeggy.concat(animation);
-														}
-								} );
+								colladaObj.scene.traverse(
+									function(child){
+										if (child instanceof THREE.SkinnedMesh){
+											var animation = new THREE.Animation(child, child.geometry.animation);
+											animation.loop = true;
+											animationsLeggy = animationsLeggy.concat(animation);
+										}
+									}
+								);
 								colladaObj.scene.updateMatrix();
 							});
 		}
@@ -736,12 +754,11 @@
 		initGame = function(){
 			addCharacter();
 			var sg = new THREE.SphereGeometry(BOUND, 30, 30);
-			var sm2 = new THREE.MeshPhongMaterial({emissive: 0xb60000});
 			s2 = new THREE.Mesh(sg, sm2);
 			s2.position.set(X + end[0] * STEP,
 							50,
 							Z + end[1] * STEP);
-			obstacles = obstacles.concat(s2);
+			scene.add(s2);
 			draw();
 			personalCamera.position.set(character.position.x + 50,
 			 							character.position.y,
@@ -808,7 +825,26 @@
 			draw();
 		}
 
-		/**/
+		/*Moves the target sphere and varies its glow*/
+		animateSphere = function(){
+			s2.rotateOnAxis(axisY, 0.04);
+			count1++;
+			count2++;
+			if(count1 >= 360){
+				count1 = 0;
+			};
+			if(count2 >= 180){
+				count2 = 0;
+			};
+			var value1 = THREE.Math.degToRad(count1);
+			var value2 = THREE.Math.degToRad(2 * count2);
+			var quantity1 = Math.sin(value1);
+			var quantity2 = Math.cos(value2);
+			s2.position.y = 80 + BOUND * quantity1;
+			s2.material.emissiveIntensity = 4 + 3.5 * quantity2;
+		}
+
+		/*Handles the start/stop of character movement animations*/
 		handleAnimations = function(){
 			if(getAnimated == true){
 				for(i=0; i<animationsLeggy.length; i++){
@@ -823,16 +859,72 @@
 			}
 		}
 
+		/*Creates the ending*/
+		createFinalScene = function(){
+			while(audio.volume >0){
+				audio.volume -= 1;
+			}
+			var url = path + "end.jpg";
+			var tx = new THREE.TextureLoader().load(url);
+			var mat = new THREE.MeshPhongMaterial({map: tx, emissiveMap: tx,
+				emissiveIntensity: 5, emissive: 0xb60000});
+			var geo = new THREE.PlaneGeometry(1080, 720, 10, 10);
+			var endPlane = new THREE.Mesh(geo, mat);
+			endPlane.position.set(100000, 100000, 100000);
+
+			document.removeEventListener("mousedown", onMouseDown);
+			document.removeEventListener("mousemove", onMouseMove);
+			document.removeEventListener("mouseup", onMouseUp);
+			audio.pause();
+
+			scene.add(endPlane);
+		}
+
+		/*Ends the game when end conditions are met*/
+		checkEnd = function(){
+			var charX = character.position.x;
+			var charZ = character.position.z;
+			var objX = s2.position.x;
+			var objZ = s2.position.z;
+			if(calculateDistance(charX, charZ, objX, objZ) < STEP/10){
+				document.removeEventListener("mousewheel", onMouseWheel);
+				document.removeEventListener("keydown", onKeyDownW);
+				document.removeEventListener("keydown", onKeyDownA);
+				document.removeEventListener("keydown", onKeyDownD);
+				document.removeEventListener("keypressed", onKeyPressedW);
+				document.removeEventListener("keypressed", onKeyPressedA);
+				document.removeEventListener("keypressed", onKeyPressedD);
+				document.removeEventListener("keyup", onKeyUp);
+				for(i = 0; i<40; i++){
+					pointLight.intensity -= 0.25;
+				}
+				while(j < 3600){
+					scene.fog.near -= 0.25;
+					pointLight.intensity -=0.25;
+					s2.material.emissiveIntensity -= 10;
+					j++;
+				}
+
+				personalCamera.position.set(100000, 100000, 100500);
+				personalCamera.lookAt(new THREE.Vector3(100000, 100000, 100000));
+
+				createFinalScene();
+			}
+			else{
+				cameraUpdate();
+			}
+		}
+
 		/*Rendering function*/
 		animate = function(){
 			requestAnimationFrame(animate);
 			raycast();
 			collideCheck();
-			cameraUpdate();
 			THREE.AnimationHandler.update(clock.getDelta());
 			handleAnimations();
-			// renderer.render(scene, camera);
+			animateSphere();
 			renderer.render(scene, personalCamera);
+			checkEnd();
 		}
 
 		generateLabyrinth();
