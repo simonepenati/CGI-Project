@@ -78,6 +78,12 @@
         var URL1 = path + "wall2.jpg";
         var URL2 = path + "floor4.jpg";
 		var URL3 = path + "sphere1.jpg";
+		var URL4 = path + "floor_normal.jpg";
+		var URL5 = path + "floor_displacement.jpg";
+		var URL6 = path + "floor_bump.jpg";
+		var URL7 = path + "wall_normal.jpg";
+		var URL8 = path + "wall_displacement.jpg";
+		var URL9 = path + "wall_bump.jpg";
 
         /*Basic Initialization*/
         var renderer = new THREE.WebGLRenderer({antialias: true});
@@ -237,7 +243,6 @@
 		}
 
 		function onKeyUp(event){
-			event.preventDefault();
 			getAnimated = false;
 		}
 
@@ -289,8 +294,15 @@
         generatePlane = function(i, j){
             var planeGeom = new THREE.PlaneGeometry(STEP, STEP);
 	        var floorText = new THREE.TextureLoader().load(URL2);
-            var planeMat = new THREE.MeshLambertMaterial({color: 0x444455,
-								map: floorText});
+			var floorNorm = new THREE.TextureLoader().load(URL4);
+			var floorBump = new THREE.TextureLoader().load(URL6);
+			var floorDisp = new THREE.TextureLoader().load(URL5);
+			var planeMat = new THREE.MeshPhongMaterial({color: 0x444455,
+								map: floorText,
+								normalMap: floorNorm,
+								bumpMap: floorBump,
+								displacementMap: floorDisp,
+								reflectivity: 0.45});
             var plane = new THREE.Mesh(planeGeom, planeMat);
 			var ceiling = new THREE.Mesh(planeGeom, planeMat);
 			plane.position.set( X + j * STEP,
@@ -317,8 +329,15 @@
                 if(vector.getComponent(w) == 1){
                     var wallGeom = new THREE.BoxGeometry(WALLW, WALLH, WALLD, 15, 15, 15);
 			        var wallText = new THREE.TextureLoader().load(URL1);
-                    var wallMat = new THREE.MeshLambertMaterial({color: 0x666666,
-									map: wallText});
+					var wallNorm = new THREE.TextureLoader().load(URL7);
+					var wallBump = new THREE.TextureLoader().load(URL9);
+					var wallDisp = new THREE.TextureLoader().load(URL8);
+                    var wallMat = new THREE.MeshPhongMaterial({color: 0x666666,
+									map: wallText,
+									normalMap: wallNorm,
+									bumpMap: wallBump,
+									displacementMap: wallDisp,
+									reflectivity: 0.5});
                     var wall = new THREE.Mesh(wallGeom, wallMat);
 					wall.name = "Wall";
                     wall.position.set(  X + (j - Math.sin(w * Math.PI/2)/2) * STEP,
@@ -852,9 +871,12 @@
 						animationsLeggy[i].play();
 					}
 				}
-			}else{
+			}
+			if(getAnimated == false){
 				for(i=0; i<animationsLeggy.length; i++){
-					animationsLeggy[i].stop();
+					if(animationsLeggy[i].isPlaying){
+						animationsLeggy[i].stop();
+					}
 				}
 			}
 		}
